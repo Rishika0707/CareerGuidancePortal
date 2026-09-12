@@ -1,0 +1,1817 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>CareerGuide - Recommendations</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: 800;
+            color: #2563eb;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #374151;
+            margin-left: 24px;
+            font-weight: 600;
+        }
+
+        nav a:hover {
+            color: #2563eb;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 45px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .page-title h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .page-title p {
+            color: #6b7280;
+            max-width: 700px;
+            margin: auto;
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 18px;
+            color: #6b7280;
+        }
+
+        .error-box {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+            margin-bottom: 25px;
+        }
+
+        .hero-career {
+            background: #ffffff;
+            border-radius: 22px;
+            padding: 40px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.07);
+            margin-bottom: 30px;
+        }
+
+        .recommended-label {
+            color: #2563eb;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 13px;
+        }
+
+        .career-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .career-title {
+            font-size: 38px;
+            margin: 10px 0;
+        }
+
+        .match {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px 18px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 20px;
+            white-space: nowrap;
+        }
+
+        .confidence {
+            display: inline-block;
+            margin-top: 8px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .explanation {
+            color: #4b5563;
+            font-size: 17px;
+            line-height: 1.7;
+            margin-top: 15px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 18px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 7px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            font-size: 23px;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .profile-item {
+            background: #f8fafc;
+            padding: 18px;
+            border-radius: 12px;
+        }
+
+        .profile-item span {
+            display: block;
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .profile-item strong {
+            font-size: 16px;
+        }
+
+        .career-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .career-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            transition: 0.2s;
+        }
+
+        .career-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .career-card h3 {
+            margin: 0 0 12px;
+            font-size: 19px;
+        }
+
+        .career-score {
+            font-weight: 800;
+            color: #2563eb;
+        }
+
+        .career-type {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #f3f4f6;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        .score-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: #2563eb;
+            border-radius: 20px;
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .skill-list li {
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .skill-list li.empty {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .skill-list li.gap {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .roadmap {
+            display: grid;
+            gap: 15px;
+        }
+
+        .roadmap-item {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            min-width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .step-text {
+            padding-top: 7px;
+            line-height: 1.5;
+        }
+
+        .path {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            line-height: 2;
+            font-weight: 600;
+        }
+
+        .timeline {
+            font-size: 25px;
+            font-weight: 800;
+            color: #2563eb;
+        }
+
+        .resource-list {
+            padding-left: 20px;
+            line-height: 2;
+        }
+
+        .resource-list li {
+            margin-bottom: 5px;
+        }
+
+        .note {
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 18px;
+            border-radius: 8px;
+            line-height: 1.6;
+            color: #7c2d12;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            background: #2563eb;
+            color: white;
+            padding: 13px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            margin-top: 15px;
+        }
+
+        .button:hover {
+            background: #1d4ed8;
+        }
+
+        .breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .breakdown-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .breakdown-card span {
+            display: block;
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .breakdown-card strong {
+            font-size: 25px;
+            color: #2563eb;
+        }
+
+        .status-box {
+            padding: 18px;
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+
+        .status-warning {
+            background: #fff7ed;
+            color: #9a3412;
+            border-left: 4px solid #f97316;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+
+        footer {
+            text-align: center;
+            padding: 35px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        @media (max-width: 750px) {
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            nav a {
+                margin: 0 7px;
+            }
+
+            .career-title-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .career-title {
+                font-size: 30px;
+            }
+
+            .profile-grid,
+            .career-list,
+            .breakdown-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-career,
+            .section {
+                padding: 25px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<header>
+
+    <div class="logo">
+        CareerGuide
+    </div>
+
+    <nav>
+
+        <a href="index.html">Home</a>
+
+        <a href="about.html">About</a>
+
+        <a href="profile.html">Profile</a>
+
+        <a href="#" onclick="logout()">Logout</a>
+
+    </nav>
+
+</header>
+
+
+<main class="container">
+
+    <div class="page-title">
+
+        <h1>
+            Your Personalized Career Guidance
+        </h1>
+
+        <p>
+            Your recommendations are calculated dynamically using
+            your education, academic field, interests and current skills.
+        </p>
+
+    </div>
+
+
+    <div id="loading" class="loading">
+        Analyzing your career profile...
+    </div>
+
+
+    <div id="errorBox" class="error-box"></div>
+
+
+    <div id="content" style="display:none;">
+
+
+        <!-- RECOMMENDED CAREER -->
+
+        <section class="hero-career">
+
+            <div class="recommended-label">
+                🚀 Recommended Career
+            </div>
+
+            <div class="career-title-row">
+
+                <div>
+
+                    <h2
+                        id="recommendedCareer"
+                        class="career-title">
+                    </h2>
+
+                    <div
+                        id="confidence"
+                        class="confidence">
+                    </div>
+
+                </div>
+
+                <div
+                    id="recommendedScore"
+                    class="match">
+                </div>
+
+            </div>
+
+            <p
+                id="recommendedExplanation"
+                class="explanation">
+            </p>
+
+        </section>
+
+
+        <!-- SCORE BREAKDOWN -->
+
+        <section class="section">
+
+            <h2>
+                📊 Recommendation Score
+            </h2>
+
+            <div
+                id="scoreBreakdown"
+                class="breakdown-grid">
+            </div>
+
+        </section>
+
+
+        <!-- LONG TERM GOAL -->
+
+        <section class="section">
+
+            <h2>
+                🎯 Your Long-Term Career Goal
+            </h2>
+
+            <h3
+                id="goalCareer"
+                style="font-size:25px;">
+            </h3>
+
+            <div id="goalSteps"></div>
+
+        </section>
+
+
+        <!-- QUALIFICATION -->
+
+        <section class="section">
+
+            <h2>
+                🎓 Qualification Status
+            </h2>
+
+            <div
+                id="qualificationStatus"
+                class="status-box">
+            </div>
+
+        </section>
+
+
+        <!-- OTHER CAREERS -->
+
+        <section class="section">
+
+            <h2>
+                ⭐ Other Suitable Careers
+            </h2>
+
+            <div
+                id="otherCareers"
+                class="career-list">
+            </div>
+
+        </section>
+
+
+        <!-- WHY -->
+
+        <section class="section">
+
+            <h2>
+                💡 Why We Recommended This Career
+            </h2>
+
+            <p
+                id="whyText"
+                class="explanation">
+            </p>
+
+        </section>
+
+
+        <!-- PROFILE -->
+
+        <section class="section">
+
+            <h2>
+                👤 Your Profile
+            </h2>
+
+            <div
+                id="profileGrid"
+                class="profile-grid">
+            </div>
+
+        </section>
+
+
+        <!-- CURRENT SKILLS -->
+
+        <section class="section">
+
+            <h2>
+                🧠 Your Current Skills
+            </h2>
+
+            <ul
+                id="currentSkills"
+                class="skill-list">
+            </ul>
+
+        </section>
+
+
+        <!-- MATCHED SKILLS -->
+
+        <section class="section">
+
+            <h2>
+                ✅ Skills You Already Have
+            </h2>
+
+            <ul
+                id="matchedSkills"
+                class="skill-list">
+            </ul>
+
+        </section>
+
+
+        <!-- SKILL GAPS -->
+
+        <section class="section">
+
+            <h2>
+                📚 Skills You Should Learn
+            </h2>
+
+            <ul
+                id="skillGaps"
+                class="skill-list">
+            </ul>
+
+        </section>
+
+
+        <!-- REQUIRED SKILLS -->
+
+        <section class="section">
+
+            <h2>
+                🧠 Skills Needed for Your Recommended Career
+            </h2>
+
+            <ul
+                id="requiredSkills"
+                class="skill-list">
+            </ul>
+
+        </section>
+
+
+        <!-- CAREER PATH -->
+
+        <section class="section">
+
+            <h2>
+                📈 Possible Career Path
+            </h2>
+
+            <div
+                id="careerPath"
+                class="path">
+            </div>
+
+        </section>
+
+
+        <!-- ROADMAP -->
+
+        <section class="section">
+
+            <h2>
+                🗺️ Recommended Career Roadmap
+            </h2>
+
+            <div
+                id="roadmap"
+                class="roadmap">
+            </div>
+
+        </section>
+
+
+        <!-- TIMELINE -->
+
+        <section class="section">
+
+            <h2>
+                ⏳ Estimated Timeline
+            </h2>
+
+            <div
+                id="timeline"
+                class="timeline">
+            </div>
+
+        </section>
+
+
+        <!-- RESOURCES -->
+
+        <section class="section">
+
+            <h2>
+                📖 Suggested Learning Resources
+            </h2>
+
+            <ul
+                id="resources"
+                class="resource-list">
+            </ul>
+
+        </section>
+
+
+        <!-- NOTE -->
+
+        <section class="section">
+
+            <div class="note">
+
+                <strong>Important:</strong>
+
+                Career recommendations are guidance based on
+                the information provided in your profile.
+                They do not guarantee employment, admission
+                or a specific career outcome.
+
+            </div>
+
+            <a
+                href="profile.html"
+                class="button">
+
+                Update Profile
+
+            </a>
+
+        </section>
+
+
+    </div>
+
+</main>
+
+
+<footer>
+
+    © 2026 Career Guidance Portal
+
+</footer>
+
+
+<script>
+
+    const userId =
+        localStorage.getItem("userId");
+
+
+    if (!userId) {
+
+        window.location.href =
+            "login.html";
+    }
+
+
+    function logout() {
+
+        localStorage.removeItem("userId");
+
+        localStorage.removeItem("userName");
+
+        window.location.href =
+            "index.html";
+    }
+
+
+    function escapeHTML(value) {
+
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    function toArray(value) {
+
+        if (Array.isArray(value)) {
+            return value;
+        }
+
+        if (!value) {
+            return [];
+        }
+
+        if (typeof value === "string") {
+
+            try {
+
+                const parsed =
+                    JSON.parse(value);
+
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
+
+            } catch {
+
+                return value
+                    .split(",")
+                    .map(item => item.trim())
+                    .filter(Boolean);
+            }
+        }
+
+        return [];
+    }
+
+
+    async function loadRecommendations() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `/api/recommendations/${userId}`
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Server returned " +
+                    response.status
+                );
+            }
+
+
+            const data =
+                await response.json();
+
+
+            if (!data.success) {
+
+                throw new Error(
+                    data.message ||
+                    "Could not generate recommendations."
+                );
+            }
+
+
+            renderRecommendations(
+                data.profile,
+                data.recommendations
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Recommendation error:",
+                error
+            );
+
+
+            document.getElementById(
+                "loading"
+            ).style.display = "none";
+
+
+            const errorBox =
+                document.getElementById(
+                    "errorBox"
+                );
+
+
+            errorBox.textContent =
+                error.message ||
+                "Cannot connect to the server. Make sure Node.js is running.";
+
+
+            errorBox.style.display =
+                "block";
+        }
+    }
+
+
+    function renderRecommendations(
+        profile,
+        recommendations
+    ) {
+
+        if (
+            !recommendations ||
+            recommendations.length === 0
+        ) {
+
+            throw new Error(
+                "No career recommendations are available."
+            );
+        }
+
+
+        const best =
+            recommendations[0];
+
+
+        /* --------------------------------
+           Support both naming styles
+        -------------------------------- */
+
+        const careerName =
+            best.careerName ||
+            best.career_name ||
+            "Career";
+
+
+        const score =
+            Number(best.score) || 0;
+
+
+        const explanation =
+            best.explanation ||
+            "This career matches some aspects of your profile.";
+
+
+        const confidence =
+            best.confidence ||
+            "Low";
+
+
+        const recommendationType =
+            best.recommendationType ||
+            best.recommendation_type ||
+            "Explore";
+
+
+        const roadmap =
+            toArray(
+                best.roadmap
+            );
+
+
+        const resources =
+            toArray(
+                best.resources
+            );
+
+
+        const requiredSkills =
+            toArray(
+                best.requiredSkills ||
+                best.required_skills
+            );
+
+
+        const matchedSkills =
+            toArray(
+                best.matchedSkills ||
+                best.matched_skills
+            );
+
+
+        const skillGaps =
+            toArray(
+                best.skillGaps ||
+                best.skill_gaps
+            );
+
+
+        const breakdown =
+            best.scoreBreakdown ||
+            best.score_breakdown ||
+            {};
+
+
+        const qualification =
+            best.qualificationStatus ||
+            best.qualification_status ||
+            {};
+
+
+        /* --------------------------------
+           Recommended Career
+        -------------------------------- */
+
+        document.getElementById(
+            "recommendedCareer"
+        ).textContent =
+            careerName;
+
+
+        document.getElementById(
+            "recommendedScore"
+        ).textContent =
+            `${score}% Match`;
+
+
+        document.getElementById(
+            "confidence"
+        ).textContent =
+            `${confidence} Confidence • ${recommendationType}`;
+
+
+        document.getElementById(
+            "recommendedExplanation"
+        ).textContent =
+            explanation;
+
+
+        document.getElementById(
+            "goalCareer"
+        ).textContent =
+            careerName;
+
+
+        document.getElementById(
+            "whyText"
+        ).textContent =
+            explanation;
+
+
+        /* --------------------------------
+           Score Breakdown
+        -------------------------------- */
+
+        const scoreBreakdown =
+            document.getElementById(
+                "scoreBreakdown"
+            );
+
+
+        scoreBreakdown.innerHTML = "";
+
+
+        const breakdownItems = [
+
+            ["Interest", breakdown.interest || 0],
+
+            ["Skills", breakdown.skills || 0],
+
+            ["Field", breakdown.field || 0],
+
+            ["Qualification", breakdown.qualification || 0]
+
+        ];
+
+
+        breakdownItems.forEach(
+            ([label, value]) => {
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.className =
+                    "breakdown-card";
+
+
+                card.innerHTML = `
+
+                    <span>
+                        ${escapeHTML(label)}
+                    </span>
+
+                    <strong>
+                        ${escapeHTML(value)}
+                    </strong>
+
+                `;
+
+
+                scoreBreakdown.appendChild(
+                    card
+                );
+
+            }
+        );
+
+
+        /* --------------------------------
+           Goal Steps
+        -------------------------------- */
+
+        const goalSteps =
+            document.getElementById(
+                "goalSteps"
+            );
+
+
+        goalSteps.innerHTML = "";
+
+
+        roadmap
+            .slice(0, 4)
+            .forEach(
+                (step, index) => {
+
+                    const div =
+                        document.createElement(
+                            "p"
+                        );
+
+
+                    div.innerHTML = `
+
+                        <strong>
+                            Step ${index + 1}
+                        </strong>
+
+                        — ${escapeHTML(step)}
+
+                    `;
+
+
+                    goalSteps.appendChild(
+                        div
+                    );
+
+                }
+            );
+
+
+        /* --------------------------------
+           Qualification Status
+        -------------------------------- */
+
+        const qualificationBox =
+            document.getElementById(
+                "qualificationStatus"
+            );
+
+
+        const meetsRequirement =
+            qualification.meetsRequirement;
+
+
+        qualificationBox.className =
+            meetsRequirement
+                ? "status-box status-success"
+                : "status-box status-warning";
+
+
+        qualificationBox.innerHTML = `
+
+            <strong>
+                ${escapeHTML(
+                    qualification.label ||
+                    "Qualification information"
+                )}
+            </strong>
+
+            <br>
+
+            Minimum required:
+            <strong>
+                ${escapeHTML(
+                    qualification.minimumRequired ||
+                    best.minimumQualification ||
+                    "Not specified"
+                )}
+            </strong>
+
+            <br>
+
+            Your qualification:
+            <strong>
+                ${escapeHTML(
+                    qualification.userQualification ||
+                    profile.qualification ||
+                    "Not specified"
+                )}
+            </strong>
+
+        `;
+
+
+        /* --------------------------------
+           Other Careers
+        -------------------------------- */
+
+        const other =
+            recommendations.slice(1, 5);
+
+
+        const otherContainer =
+            document.getElementById(
+                "otherCareers"
+            );
+
+
+        otherContainer.innerHTML = "";
+
+
+        other.forEach(
+            career => {
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.className =
+                    "career-card";
+
+
+                const name =
+                    career.careerName ||
+                    career.career_name ||
+                    "Career";
+
+
+                const careerScore =
+                    Number(
+                        career.score
+                    ) || 0;
+
+
+                const type =
+                    career.recommendationType ||
+                    career.recommendation_type ||
+                    "Explore";
+
+
+                const careerExplanation =
+                    career.explanation ||
+                    "";
+
+
+                card.innerHTML = `
+
+                    <h3>
+                        ${escapeHTML(name)}
+                    </h3>
+
+                    <div class="career-score">
+                        ${careerScore}% Match
+                    </div>
+
+                    <div class="career-type">
+                        ${escapeHTML(type)}
+                    </div>
+
+                    <div class="score-bar">
+
+                        <div
+                            class="score-fill"
+                            style="width:${Math.min(
+                                Math.max(careerScore, 0),
+                                100
+                            )}%">
+                        </div>
+
+                    </div>
+
+                    <p
+                        style="
+                            color:#6b7280;
+                            line-height:1.5;
+                        ">
+
+                        ${escapeHTML(
+                            careerExplanation
+                        )}
+
+                    </p>
+
+                `;
+
+
+                otherContainer.appendChild(
+                    card
+                );
+
+            }
+        );
+
+
+        /* --------------------------------
+           Profile
+        -------------------------------- */
+
+        const profileGrid =
+            document.getElementById(
+                "profileGrid"
+            );
+
+
+        profileGrid.innerHTML = `
+
+            <div class="profile-item">
+
+                <span>
+                    Full Name
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        profile.fullName ||
+                        profile.full_name ||
+                        "Not provided"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="profile-item">
+
+                <span>
+                    Qualification
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        profile.qualification ||
+                        "Not provided"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="profile-item">
+
+                <span>
+                    Field / Stream
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        profile.field ||
+                        "Not provided"
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="profile-item">
+
+                <span>
+                    Career Interest
+                </span>
+
+                <strong>
+                    ${escapeHTML(
+                        profile.interest ||
+                        "Not provided"
+                    )}
+                </strong>
+
+            </div>
+
+        `;
+
+
+        /* --------------------------------
+           Current Skills
+        -------------------------------- */
+
+        const currentSkills =
+            document.getElementById(
+                "currentSkills"
+            );
+
+
+        currentSkills.innerHTML = "";
+
+
+        let skills =
+            profile.skills || [];
+
+
+        skills =
+            toArray(skills);
+
+
+        if (
+            skills.length === 0
+        ) {
+
+            const li =
+                document.createElement(
+                    "li"
+                );
+
+
+            li.className =
+                "empty";
+
+
+            li.textContent =
+                "No skills added yet";
+
+
+            currentSkills.appendChild(
+                li
+            );
+
+        } else {
+
+            skills.forEach(
+                skill => {
+
+                    let name = "";
+                    let level = "";
+
+
+                    if (
+                        typeof skill ===
+                        "string"
+                    ) {
+
+                        name = skill;
+
+                    } else {
+
+                        name =
+                            skill.name ||
+                            skill.skill ||
+                            skill.title ||
+                            "";
+
+
+                        level =
+                            skill.level ||
+                            skill.value ||
+                            "";
+                    }
+
+
+                    if (!name) {
+                        return;
+                    }
+
+
+                    const li =
+                        document.createElement(
+                            "li"
+                        );
+
+
+                    li.textContent =
+                        level
+                            ? `${name} — ${level}`
+                            : name;
+
+
+                    currentSkills.appendChild(
+                        li
+                    );
+
+                }
+            );
+        }
+
+
+        /* --------------------------------
+           Matched Skills
+        -------------------------------- */
+
+        const matchedSkillsContainer =
+            document.getElementById(
+                "matchedSkills"
+            );
+
+
+        matchedSkillsContainer.innerHTML =
+            "";
+
+
+        if (
+            matchedSkills.length === 0
+        ) {
+
+            const li =
+                document.createElement(
+                    "li"
+                );
+
+
+            li.className =
+                "empty";
+
+
+            li.textContent =
+                "No matching skills yet";
+
+
+            matchedSkillsContainer.appendChild(
+                li
+            );
+
+        } else {
+
+            matchedSkills.forEach(
+                skill => {
+
+                    const li =
+                        document.createElement(
+                            "li"
+                        );
+
+
+                    li.textContent =
+                        skill;
+
+
+                    matchedSkillsContainer.appendChild(
+                        li
+                    );
+
+                }
+            );
+        }
+
+
+        /* --------------------------------
+           Skill Gaps
+        -------------------------------- */
+
+        const skillGapsContainer =
+            document.getElementById(
+                "skillGaps"
+            );
+
+
+        skillGapsContainer.innerHTML =
+            "";
+
+
+        if (
+            skillGaps.length === 0
+        ) {
+
+            const li =
+                document.createElement(
+                    "li"
+                );
+
+
+            li.className =
+                "empty";
+
+
+            li.textContent =
+                "No major skill gaps identified";
+
+
+            skillGapsContainer.appendChild(
+                li
+            );
+
+        } else {
+
+            skillGaps.forEach(
+                skill => {
+
+                    const li =
+                        document.createElement(
+                            "li"
+                        );
+
+
+                    li.className =
+                        "gap";
+
+
+                    li.textContent =
+                        skill;
+
+
+                    skillGapsContainer.appendChild(
+                        li
+                    );
+
+                }
+            );
+        }
+
+
+        /* --------------------------------
+           Required Skills
+        -------------------------------- */
+
+        const requiredSkillsContainer =
+            document.getElementById(
+                "requiredSkills"
+            );
+
+
+        requiredSkillsContainer.innerHTML =
+            "";
+
+
+        if (
+            requiredSkills.length === 0
+        ) {
+
+            const li =
+                document.createElement(
+                    "li"
+                );
+
+
+            li.className =
+                "empty";
+
+
+            li.textContent =
+                "No required skills listed";
+
+
+            requiredSkillsContainer.appendChild(
+                li
+            );
+
+        } else {
+
+            requiredSkills.forEach(
+                skill => {
+
+                    const li =
+                        document.createElement(
+                            "li"
+                        );
+
+
+                    li.textContent =
+                        skill;
+
+
+                    requiredSkillsContainer.appendChild(
+                        li
+                    );
+
+                }
+            );
+        }
+
+
+        /* --------------------------------
+           Career Path
+        -------------------------------- */
+
+        const careerPath =
+            document.getElementById(
+                "careerPath"
+            );
+
+
+        if (roadmap.length > 0) {
+
+            careerPath.textContent =
+                roadmap.join(" → ");
+
+        } else {
+
+            careerPath.textContent =
+                "Career roadmap will be available soon.";
+
+        }
+
+
+        /* --------------------------------
+           Roadmap
+        -------------------------------- */
+
+        const roadmapContainer =
+            document.getElementById(
+                "roadmap"
+            );
+
+
+        roadmapContainer.innerHTML =
+            "";
+
+
+        roadmap.forEach(
+            (step, index) => {
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                row.className =
+                    "roadmap-item";
+
+
+                row.innerHTML = `
+
+                    <div class="step-number">
+                        ${index + 1}
+                    </div>
+
+                    <div class="step-text">
+                        ${escapeHTML(step)}
+                    </div>
+
+                `;
+
+
+                roadmapContainer.appendChild(
+                    row
+                );
+
+            }
+        );
+
+
+        /* --------------------------------
+           Timeline
+        -------------------------------- */
+
+        document.getElementById(
+            "timeline"
+        ).textContent =
+            best.timeline ||
+            "Not specified";
+
+
+        /* --------------------------------
+           Resources
+        -------------------------------- */
+
+        const resourcesContainer =
+            document.getElementById(
+                "resources"
+            );
+
+
+        resourcesContainer.innerHTML =
+            "";
+
+
+        resources.forEach(
+            resource => {
+
+                const li =
+                    document.createElement(
+                        "li"
+                    );
+
+
+                li.textContent =
+                    resource;
+
+
+                resourcesContainer.appendChild(
+                    li
+                );
+
+            }
+        );
+
+
+        /* --------------------------------
+           Display
+        -------------------------------- */
+
+        document.getElementById(
+            "loading"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "content"
+        ).style.display =
+            "block";
+    }
+
+
+    loadRecommendations();
+
+</script>
+
+</body>
+
+</html>
+```

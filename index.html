@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Career Guidance Portal</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f3ff;
+            color: #222;
+        }
+
+        /* =========================
+           NAVIGATION BAR
+        ========================= */
+
+        nav {
+            background: #6c3fc5;
+            color: white;
+            padding: 20px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h2 {
+            font-size: 24px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 25px;
+            font-size: 16px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* =========================
+           HERO SECTION
+        ========================= */
+
+        .hero {
+            min-height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .hero-content {
+            max-width: 750px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            color: #4b2491;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        /* =========================
+           GET STARTED BUTTON
+        ========================= */
+
+        .button {
+            display: inline-block;
+            background: #6c3fc5;
+            color: white;
+            padding: 15px 35px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background: #51299b;
+        }
+
+        /* =========================
+           FEATURES
+        ========================= */
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 40px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            width: 260px;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #5b32a8;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        footer {
+            background: #32155f;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        /* =========================
+           MOBILE RESPONSIVE
+        ========================= */
+
+        @media (max-width: 700px) {
+
+            nav {
+                padding: 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            nav a {
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 17px;
+            }
+
+            .features {
+                padding: 20px;
+            }
+
+            .card {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- =========================
+         NAVIGATION
+    ========================= -->
+
+    <nav>
+
+        <h2>CareerGuide</h2>
+
+        <div>
+
+            <a href="index.html">Home</a>
+
+            <!-- About page -->
+            <a href="about.html">About</a>
+
+            <a href="login.html">Login</a>
+
+            <a href="register.html">Register</a>
+
+        </div>
+
+    </nav>
+
+
+    <!-- =========================
+         HERO SECTION
+    ========================= -->
+
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <h1>
+                Discover Your Perfect Career
+            </h1>
+
+            <p>
+                Find the career that matches your qualification,
+                skills, proficiency and interests.
+                Get a personalized roadmap to achieve your career goals.
+            </p>
+
+            <!-- Get Started goes to Register -->
+
+            <a href="register.html" class="button">
+                Get Started
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         FEATURES
+    ========================= -->
+
+    <section class="features">
+
+        <div class="card">
+
+            <h3>
+                🎓 Career Matching
+            </h3>
+
+            <p>
+                Find careers that match your education,
+                skills and interests.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>
+                📊 Skill Analysis
+            </h3>
+
+            <p>
+                Understand your current skills and
+                identify the skills you need to improve.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>
+                🗺️ Career Roadmap
+            </h3>
+
+            <p>
+                Get a step-by-step roadmap with
+                a timeline to reach your career goal.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>
+                📚 Resources
+            </h3>
+
+            <p>
+                Discover useful courses, tutorials and
+                learning resources for your career.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         FOOTER
+    ========================= -->
+
+    <footer>
+
+        <p>
+            © 2026 CareerGuide - Online Career Guidance Portal
+        </p>
+
+    </footer>
+
+</body>
+
+</html>
