@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,14 +21,14 @@
 
         nav {
             background: #6c3fdc;
-            padding: 16px 8%;
+            color: white;
+            padding: 18px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .logo {
-            color: white;
+        nav .logo {
             font-size: 24px;
             font-weight: bold;
         }
@@ -36,7 +37,7 @@
             color: white;
             text-decoration: none;
             margin-left: 25px;
-            font-weight: bold;
+            font-size: 16px;
         }
 
         nav a:hover {
@@ -49,7 +50,7 @@
             background: white;
             padding: 35px;
             border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         }
 
         h1 {
@@ -58,25 +59,25 @@
             margin-bottom: 10px;
         }
 
-        .intro {
+        .subtitle {
             text-align: center;
             color: #666;
             margin-bottom: 30px;
         }
 
-        h2 {
-            color: #6c3fdc;
-            margin-top: 30px;
+        .form-group {
+            margin-bottom: 22px;
         }
 
         label {
             display: block;
             font-weight: bold;
-            margin-top: 18px;
             margin-bottom: 8px;
+            color: #333;
         }
 
-        select {
+        select,
+        input {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccc;
@@ -85,60 +86,60 @@
             background: white;
         }
 
-        select:focus {
+        select:focus,
+        input:focus {
             outline: none;
             border-color: #6c3fdc;
         }
 
-        .info-box {
-            background: #f5f3ff;
-            border-left: 4px solid #6c3fdc;
-            padding: 15px;
-            margin: 25px 0;
-            border-radius: 8px;
+        .skill-heading {
+            margin-top: 30px;
+            margin-bottom: 10px;
+            color: #333;
         }
 
         .skill-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 180px 45px;
+            grid-template-columns: 1fr 180px 45px;
             gap: 10px;
-            align-items: center;
             margin-bottom: 12px;
+            align-items: center;
         }
 
         .skill-row select {
             width: 100%;
-            margin: 0;
         }
 
         .remove-btn {
-            width: 40px;
-            height: 40px;
+            height: 42px;
+            width: 42px;
             border: none;
             border-radius: 8px;
-            background: #eee;
-            color: #555;
-            font-size: 22px;
+            background: #e74c3c;
+            color: white;
+            font-size: 20px;
             cursor: pointer;
         }
 
         .remove-btn:hover {
-            background: #ddd;
+            background: #c0392b;
         }
 
-        .add-skill-btn {
-            margin-top: 10px;
-            background: white;
+        .add-btn {
+            background: #eee8ff;
             color: #6c3fdc;
             border: 2px solid #6c3fdc;
-            padding: 10px 18px;
+            padding: 11px 18px;
             border-radius: 8px;
             cursor: pointer;
+            font-size: 15px;
             font-weight: bold;
+            margin-top: 5px;
         }
 
-        .add-skill-btn:hover {
-            background: #f5f3ff;
+        .add-btn:hover {
+            background: #6c3fdc;
+            color: white;
         }
 
         .save-btn {
@@ -149,30 +150,43 @@
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 17px;
             font-weight: bold;
             cursor: pointer;
         }
 
         .save-btn:hover {
-            background: #5930bd;
+            background: #5730b5;
         }
 
         #message {
             text-align: center;
-            margin-top: 18px;
+            margin-top: 20px;
             font-weight: bold;
+            min-height: 22px;
         }
 
         footer {
+            margin-top: 50px;
             background: #2d1b50;
             color: white;
             text-align: center;
             padding: 20px;
-            margin-top: 50px;
         }
 
         @media (max-width: 650px) {
+            nav {
+                padding: 15px 20px;
+            }
+
+            nav .logo {
+                font-size: 20px;
+            }
+
+            nav a {
+                margin-left: 12px;
+                font-size: 14px;
+            }
 
             .container {
                 margin: 20px;
@@ -186,14 +200,6 @@
             .remove-btn {
                 width: 100%;
             }
-
-            nav {
-                padding: 15px 20px;
-            }
-
-            nav a {
-                margin-left: 10px;
-            }
         }
     </style>
 </head>
@@ -201,265 +207,127 @@
 <body>
 
 <nav>
-
-    <div class="logo">
-        CareerGuide
-    </div>
+    <div class="logo">CareerGuide</div>
 
     <div>
         <a href="index.html">Home</a>
         <a href="about.html">About</a>
-        <a href="profile.html">Profile</a>
         <a href="#" onclick="logout()">Logout</a>
     </div>
-
 </nav>
 
 
 <div class="container">
 
-    <h1>Build Your Career Profile</h1>
+    <h1>Career Profile</h1>
 
-    <p class="intro">
-        Tell us about your education, interests and current skills.
-        We will use this information to recommend suitable career paths.
+    <p class="subtitle">
+        Tell us about your education, interests and skills to get suitable career recommendations.
     </p>
 
 
-    <div class="info-box">
+    <!-- QUALIFICATION -->
 
-        <strong>How recommendations work</strong>
+    <div class="form-group">
+        <label for="qualification">Qualification</label>
 
-        <p>
-            CareerGuide compares your qualification, academic field,
-            career interests and current skill levels with our career database.
-            The more areas that match, the stronger your recommendation.
-        </p>
-
+        <select id="qualification">
+            <option value="">Select Qualification</option>
+            <option value="10th">10th</option>
+            <option value="12th">12th</option>
+            <option value="Diploma">Diploma</option>
+            <option value="Bachelor">Bachelor's Degree</option>
+            <option value="Master">Master's Degree</option>
+        </select>
     </div>
 
 
-    <h2>Education & Interests</h2>
+    <!-- FIELD -->
+
+    <div class="form-group">
+        <label for="field">Field / Stream</label>
+
+        <select id="field">
+            <option value="">Select Field / Stream</option>
+
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Commerce">Commerce</option>
+            <option value="Business">Business</option>
+            <option value="Management">Management</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Statistics">Statistics</option>
+            <option value="Economics">Economics</option>
+            <option value="Arts">Arts</option>
+            <option value="Fine Arts">Fine Arts</option>
+            <option value="Design">Design</option>
+            <option value="Graphic Design">Graphic Design</option>
+            <option value="Science">Science</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
 
 
-    <label for="qualification">
-        Highest Qualification
-    </label>
+    <!-- INTEREST -->
 
-    <select id="qualification">
+    <div class="form-group">
+        <label for="interest">Career Interest</label>
 
-        <option value="">
-            Select qualification
-        </option>
+        <select id="interest">
+            <option value="">Select Career Interest</option>
 
-        <option value="10th">
-            10th
-        </option>
+            <option value="Technology & Computers">
+                Technology & Computers
+            </option>
 
-        <option value="12th">
-            12th
-        </option>
+            <option value="Business & Management">
+                Business & Management
+            </option>
 
-        <option value="Diploma">
-            Diploma
-        </option>
+            <option value="Art & Design">
+                Art & Design
+            </option>
 
-        <option value="Bachelor">
-            Bachelor Degree
-        </option>
+            <option value="Mathematics & Data">
+                Mathematics & Data
+            </option>
 
-        <option value="Master">
-            Master Degree
-        </option>
+            <option value="Writing & Content">
+                Writing & Content
+            </option>
 
-    </select>
+            <option value="Communication">
+                Communication
+            </option>
 
-
-    <label for="field">
-        Field / Stream
-    </label>
-
-    <select id="field">
-
-        <option value="">
-            Select your field
-        </option>
-
-        <option value="Fine Art">
-            Fine Art
-        </option>
-
-        <option value="Design">
-            Design
-        </option>
-
-        <option value="Graphic Design">
-            Graphic Design
-        </option>
-
-        <option value="Arts">
-            Arts
-        </option>
-
-        <option value="Humanities">
-            Humanities
-        </option>
-
-        <option value="Commerce">
-            Commerce
-        </option>
-
-        <option value="Business">
-            Business
-        </option>
-
-        <option value="Management">
-            Management
-        </option>
-
-        <option value="Computer Science">
-            Computer Science
-        </option>
-
-        <option value="Information Technology">
-            Information Technology
-        </option>
-
-        <option value="Engineering">
-            Engineering
-        </option>
-
-        <option value="Mathematics">
-            Mathematics
-        </option>
-
-        <option value="Statistics">
-            Statistics
-        </option>
-
-        <option value="English">
-            English
-        </option>
-
-        <option value="Journalism">
-            Journalism
-        </option>
-
-        <option value="Media">
-            Media
-        </option>
-
-    </select>
+            <option value="Marketing">
+                Marketing
+            </option>
+        </select>
+    </div>
 
 
-    <label for="interest">
-        Primary Career Interest
-    </label>
+    <!-- SKILLS -->
 
-    <select id="interest">
+    <h3 class="skill-heading">Skills</h3>
 
-        <option value="">
-            Select your main interest
-        </option>
-
-        <option value="Design">
-            Design
-        </option>
-
-        <option value="Creativity">
-            Creativity
-        </option>
-
-        <option value="Technology">
-            Technology
-        </option>
-
-        <option value="Programming">
-            Programming
-        </option>
-
-        <option value="Web Development">
-            Web Development
-        </option>
-
-        <option value="Data Analysis">
-            Data Analysis
-        </option>
-
-        <option value="Mathematics">
-            Mathematics
-        </option>
-
-        <option value="Business">
-            Business
-        </option>
-
-        <option value="Management">
-            Management
-        </option>
-
-        <option value="Marketing">
-            Marketing
-        </option>
-
-        <option value="Communication">
-            Communication
-        </option>
-
-        <option value="Writing">
-            Writing
-        </option>
-
-        <option value="Sales">
-            Sales
-        </option>
-
-        <option value="Customer Service">
-            Customer Service
-        </option>
-
-        <option value="Administration">
-            Administration
-        </option>
-
-        <option value="Organization">
-            Organization
-        </option>
-
-    </select>
-
-
-    <!-- ========================= -->
-    <!-- SKILLS SECTION -->
-    <!-- ========================= -->
-
-    <h2>Your Current Skills</h2>
-
-    <p>
-        Add the skills you already have and select your current proficiency level.
+    <p style="color:#666;">
+        Select your skills and choose your proficiency level.
     </p>
-
 
     <div id="skillsContainer"></div>
 
-
-    <button
-        type="button"
-        class="add-skill-btn"
-        onclick="addSkillRow()"
-    >
+    <button type="button" class="add-btn" onclick="addSkillRow()">
         + Add Skill
     </button>
 
 
-    <button
-        type="button"
-        class="save-btn"
-        onclick="saveProfile()"
-    >
+    <!-- SAVE -->
+
+    <button type="button" class="save-btn" onclick="saveProfile()">
         Save Profile & Get Recommendations
     </button>
-
 
     <div id="message"></div>
 
@@ -467,437 +335,401 @@
 
 
 <footer>
-    © 2026 Career Guidance Portal
+    © 2026 CareerGuide - Online Career Guidance Portal
 </footer>
 
 
 <script>
 
+    /*
+     * ============================================================
+     * LARGE SKILL LIBRARY
+     * ============================================================
+     */
 
-/* ==========================================
-   VALID SKILL LIBRARY
-   ========================================== */
+    const validSkills = [
 
-const validSkills = [
+        // Programming
+        "Programming",
+        "Python",
+        "Java",
+        "C",
+        "C++",
+        "C#",
+        "JavaScript",
+        "TypeScript",
+        "PHP",
+        "Ruby",
+        "Kotlin",
+        "Swift",
 
-    /* Programming */
+        // Web
+        "HTML",
+        "CSS",
+        "HTML/CSS",
+        "Web Development",
+        "Frontend Development",
+        "Backend Development",
+        "Full Stack Development",
+        "React",
+        "Node.js",
+        "Express.js",
+        "Bootstrap",
 
-    "Programming",
-    "Python",
-    "Java",
-    "C",
-    "C++",
-    "C#",
-    "JavaScript",
-    "TypeScript",
-    "PHP",
-    "Ruby",
-    "Kotlin",
-    "Swift",
+        // Database
+        "SQL",
+        "MySQL",
+        "SQLite",
+        "MongoDB",
+        "Database Management",
 
-    /* Web Development */
+        // Data
+        "Data Analysis",
+        "Data Visualization",
+        "Microsoft Excel",
+        "Advanced Excel",
+        "Power BI",
+        "Tableau",
+        "Statistics",
+        "Data Cleaning",
+        "Data Management",
+        "Machine Learning",
+        "Artificial Intelligence",
 
-    "HTML",
-    "CSS",
-    "HTML/CSS",
-    "Web Development",
-    "Frontend Development",
-    "Backend Development",
-    "Full Stack Development",
-    "React",
-    "Node.js",
-    "Express.js",
-    "Bootstrap",
+        // Development tools
+        "Git",
+        "GitHub",
+        "VS Code",
 
-    /* Database */
+        // Office
+        "Microsoft Word",
+        "Microsoft PowerPoint",
+        "Microsoft Office",
+        "Google Workspace",
 
-    "SQL",
-    "MySQL",
-    "SQLite",
-    "MongoDB",
-    "Database Management",
+        // Design
+        "Design",
+        "Graphic Design",
+        "UI Design",
+        "UX Design",
+        "UI/UX Design",
+        "Figma",
+        "Adobe Photoshop",
+        "Adobe Illustrator",
+        "Canva",
+        "Visual Design",
+        "Typography",
+        "Illustration",
+        "Animation",
+        "Video Editing",
 
-    /* Data */
+        // Creative
+        "Creative Thinking",
 
-    "Data Analysis",
-    "Data Visualization",
-    "Microsoft Excel",
-    "Advanced Excel",
-    "Power BI",
-    "Tableau",
-    "Statistics",
-    "Data Cleaning",
-    "Data Management",
-    "Machine Learning",
-    "Artificial Intelligence",
+        // Business
+        "Business Analysis",
+        "Business Planning",
+        "Management",
+        "Project Management",
+        "Time Management",
+        "Organization",
+        "Problem Solving",
+        "Decision Making",
+        "Leadership",
 
-    /* Software */
+        // Communication
+        "Communication",
+        "Verbal Communication",
+        "Written Communication",
+        "Public Speaking",
+        "Presentation",
+        "Teamwork",
+        "Interpersonal Skills",
+        "Customer Service",
+        "Negotiation",
 
-    "Git",
-    "GitHub",
-    "VS Code",
-    "Microsoft Word",
-    "Microsoft PowerPoint",
-    "Microsoft Office",
-    "Google Workspace",
+        // Writing
+        "Writing",
+        "Content Writing",
+        "Creative Writing",
+        "Technical Writing",
+        "Copywriting",
+        "Blog Writing",
+        "Grammar",
+        "Editing",
+        "Proofreading",
+        "Research",
+        "SEO",
 
-    /* Design */
+        // Marketing
+        "Marketing",
+        "Digital Marketing",
+        "Social Media Marketing",
+        "Social Media Management",
+        "Email Marketing",
+        "Content Marketing",
+        "Market Research",
+        "Brand Management",
 
-    "Design",
-    "Graphic Design",
-    "UI Design",
-    "UX Design",
-    "UI/UX Design",
-    "Figma",
-    "Adobe Photoshop",
-    "Adobe Illustrator",
-    "Canva",
-    "Visual Design",
-    "Typography",
-    "Illustration",
-    "Animation",
-    "Video Editing",
-    "Creative Thinking",
+        // Sales
+        "Sales",
+        "Retail Sales",
+        "Customer Relationship Management",
+        "CRM",
+        "Lead Generation",
 
-    /* Business */
+        // Administration
+        "Administration",
+        "Office Administration",
+        "Data Entry",
+        "Typing",
+        "Record Keeping",
+        "Documentation",
+        "Filing",
+        "Scheduling",
 
-    "Business Analysis",
-    "Business Planning",
-    "Management",
-    "Project Management",
-    "Time Management",
-    "Organization",
-    "Problem Solving",
-    "Decision Making",
-    "Leadership",
-
-    /* Communication */
-
-    "Communication",
-    "Verbal Communication",
-    "Written Communication",
-    "Public Speaking",
-    "Presentation",
-    "Teamwork",
-    "Interpersonal Skills",
-    "Customer Service",
-    "Negotiation",
-
-    /* Writing */
-
-    "Writing",
-    "Content Writing",
-    "Creative Writing",
-    "Technical Writing",
-    "Copywriting",
-    "Blog Writing",
-    "Grammar",
-    "Editing",
-    "Proofreading",
-    "Research",
-    "SEO",
-
-    /* Marketing */
-
-    "Marketing",
-    "Digital Marketing",
-    "Social Media Marketing",
-    "Social Media Management",
-    "Email Marketing",
-    "Content Marketing",
-    "Market Research",
-    "Brand Management",
-
-    /* Sales */
-
-    "Sales",
-    "Retail Sales",
-    "Customer Relationship Management",
-    "CRM",
-    "Lead Generation",
-
-    /* Administration */
-
-    "Administration",
-    "Office Administration",
-    "Data Entry",
-    "Typing",
-    "Record Keeping",
-    "Documentation",
-    "Filing",
-    "Scheduling",
-
-    /* Other */
-
-    "Critical Thinking",
-    "Analytical Thinking",
-    "Research Skills",
-    "Attention to Detail",
-    "Adaptability",
-    "Creativity",
-    "Planning",
-    "Multitasking"
-
-];
+        // General
+        "Critical Thinking",
+        "Analytical Thinking",
+        "Research Skills",
+        "Attention to Detail",
+        "Adaptability",
+        "Creativity",
+        "Planning",
+        "Multitasking"
+    ];
 
 
-/* ==========================================
-   CREATE SKILL OPTIONS
-   ========================================== */
+    /*
+     * ============================================================
+     * CREATE SKILL OPTIONS
+     * ============================================================
+     */
 
-function createSkillOptions(selectedSkill = "") {
+    function createSkillOptions(selectedSkill = "") {
 
-    let html = `
-        <option value="">
-            Select Skill
-        </option>
-    `;
-
-    validSkills.forEach(function(skill) {
-
-        const selected =
-            skill === selectedSkill ? "selected" : "";
-
-        html += `
-            <option value="${skill}" ${selected}>
-                ${skill}
-            </option>
+        let html = `
+            <option value="">Select Skill</option>
         `;
 
-    });
+        validSkills.forEach(function(skill) {
 
-    return html;
-}
+            const selected =
+                skill.toLowerCase() === selectedSkill.toLowerCase()
+                ? "selected"
+                : "";
 
+            html += `
+                <option value="${skill}" ${selected}>
+                    ${skill}
+                </option>
+            `;
+        });
 
-/* ==========================================
-   ADD SKILL ROW
-   ========================================== */
-
-function addSkillRow(skill = "", level = "Beginner") {
-
-    const row = document.createElement("div");
-
-    row.className = "skill-row";
-
-
-    row.innerHTML = `
-
-        <select class="skill-select">
-
-            ${createSkillOptions(skill)}
-
-        </select>
+        return html;
+    }
 
 
-        <select class="level-select">
+    /*
+     * ============================================================
+     * ADD SKILL ROW
+     * ============================================================
+     */
 
-            <option value="Beginner">
-                Beginner
-            </option>
+    function addSkillRow(skill = "", level = "Beginner") {
 
-            <option value="Intermediate">
-                Intermediate
-            </option>
+        const container =
+            document.getElementById("skillsContainer");
 
-            <option value="Advanced">
-                Advanced
-            </option>
+        const row =
+            document.createElement("div");
 
-        </select>
+        row.className = "skill-row";
+
+        row.innerHTML = `
+
+            <select class="skill-select">
+                ${createSkillOptions(skill)}
+            </select>
+
+            <select class="level-select">
+
+                <option value="Beginner"
+                    ${level === "Beginner" ? "selected" : ""}>
+                    Beginner
+                </option>
+
+                <option value="Intermediate"
+                    ${level === "Intermediate" ? "selected" : ""}>
+                    Intermediate
+                </option>
+
+                <option value="Advanced"
+                    ${level === "Advanced" ? "selected" : ""}>
+                    Advanced
+                </option>
+
+            </select>
+
+            <button
+                type="button"
+                class="remove-btn"
+                onclick="this.parentElement.remove()">
+                ×
+            </button>
+        `;
+
+        container.appendChild(row);
+    }
 
 
-        <button
-            type="button"
-            class="remove-btn"
-            title="Remove skill"
-        >
-            ×
-        </button>
+    /*
+     * ============================================================
+     * GET SELECTED SKILLS
+     * ============================================================
+     */
 
-    `;
+    function getSelectedSkills() {
+
+        const rows =
+            document.querySelectorAll(".skill-row");
+
+        const skills = [];
+
+        rows.forEach(function(row) {
+
+            const skill =
+                row.querySelector(".skill-select").value;
+
+            const level =
+                row.querySelector(".level-select").value;
+
+            if (skill) {
+
+                skills.push({
+                    name: skill,
+                    level: level
+                });
+            }
+        });
+
+        return skills;
+    }
 
 
-    row.querySelector(".level-select").value = level;
+    /*
+     * ============================================================
+     * SAVE PROFILE
+     *
+     * IMPORTANT:
+     * First checks localStorage.
+     * If userId is missing, checks server session/cookie.
+     * ============================================================
+     */
+
+    async function saveProfile() {
+
+        const message =
+            document.getElementById("message");
+
+        message.textContent = "";
+        message.style.color = "";
 
 
-    row.querySelector(".remove-btn").addEventListener(
-        "click",
-        function() {
-            row.remove();
+        /*
+         * STEP 1:
+         * Try localStorage
+         */
+
+        let userId =
+            localStorage.getItem("userId");
+
+
+        /*
+         * STEP 2:
+         * If localStorage does not have userId,
+         * ask the server who is logged in.
+         */
+
+        if (
+            !userId ||
+            userId === "undefined" ||
+            userId === "null"
+        ) {
+
+            try {
+
+                const sessionResponse =
+                    await fetch("/api/session", {
+                        method: "GET",
+                        credentials: "include"
+                    });
+
+
+                const sessionData =
+                    await sessionResponse.json();
+
+
+                if (
+                    sessionResponse.ok &&
+                    sessionData.success &&
+                    sessionData.user &&
+                    sessionData.user.id
+                ) {
+
+                    userId =
+                        String(sessionData.user.id);
+
+
+                    /*
+                     * Save the recovered user information
+                     * back into localStorage.
+                     */
+
+                    localStorage.setItem(
+                        "userId",
+                        userId
+                    );
+
+                    localStorage.setItem(
+                        "userName",
+                        sessionData.user.full_name || ""
+                    );
+
+                    localStorage.setItem(
+                        "userEmail",
+                        sessionData.user.email || ""
+                    );
+
+                    localStorage.setItem(
+                        "isLoggedIn",
+                        "true"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Session check failed:",
+                    error
+                );
+            }
         }
-    );
 
 
-    document
-        .getElementById("skillsContainer")
-        .appendChild(row);
-}
+        /*
+         * STEP 3:
+         * Final user ID check
+         */
 
-
-/* ==========================================
-   GET SELECTED SKILLS
-   ========================================== */
-
-function getSelectedSkills() {
-
-    const rows =
-        document.querySelectorAll(".skill-row");
-
-    const skills = [];
-
-
-    rows.forEach(function(row) {
-
-        const skill =
-            row.querySelector(".skill-select").value;
-
-        const level =
-            row.querySelector(".level-select").value;
-
-
-        if (skill) {
-
-            skills.push({
-                name: skill,
-                level: level
-            });
-
-        }
-
-    });
-
-
-    return skills;
-}
-
-
-/* ==========================================
-   SAVE PROFILE
-   ========================================== */
-
-async function saveProfile() {
-
-    const message =
-        document.getElementById("message");
-
-
-    message.textContent = "";
-    message.style.color = "";
-
-
-    const userId =
-        localStorage.getItem("userId");
-
-
-    if (
-        !userId ||
-        userId === "undefined" ||
-        userId === "null"
-    ) {
-
-        message.textContent =
-            "Please login again before saving your profile.";
-
-        message.style.color = "red";
-
-        return;
-    }
-
-
-    const qualification =
-        document.getElementById("qualification").value;
-
-
-    const field =
-        document.getElementById("field").value;
-
-
-    const interest =
-        document.getElementById("interest").value;
-
-
-    if (!qualification) {
-
-        message.textContent =
-            "Please select your qualification.";
-
-        message.style.color = "red";
-
-        return;
-    }
-
-
-    if (!field) {
-
-        message.textContent =
-            "Please select your field.";
-
-        message.style.color = "red";
-
-        return;
-    }
-
-
-    if (!interest) {
-
-        message.textContent =
-            "Please select your career interest.";
-
-        message.style.color = "red";
-
-        return;
-    }
-
-
-    const skills =
-        getSelectedSkills();
-
-
-    try {
-
-        const response =
-            await fetch("/api/profile", {
-
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-
-                    userId: Number(userId),
-
-                    userEmail:
-                        localStorage.getItem("userEmail") || "",
-
-                    qualification:
-                        qualification,
-
-                    field:
-                        field,
-
-                    interest:
-                        interest,
-
-                    skills:
-                        skills
-
-                })
-
-            });
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
+        if (
+            !userId ||
+            userId === "undefined" ||
+            userId === "null"
+        ) {
 
             message.textContent =
-                data.message ||
-                "Unable to save profile.";
+                "Please login again before saving your profile.";
 
             message.style.color = "red";
 
@@ -905,70 +737,260 @@ async function saveProfile() {
         }
 
 
-        message.textContent =
-            "Profile saved successfully!";
+        /*
+         * STEP 4:
+         * Get profile information
+         */
 
-        message.style.color = "green";
+        const qualification =
+            document.getElementById("qualification").value;
 
+        const field =
+            document.getElementById("field").value;
 
-        setTimeout(function() {
-
-            window.location.href =
-                "career.html";
-
-        }, 700);
-
-
-    } catch (error) {
-
-        console.error(error);
+        const interest =
+            document.getElementById("interest").value;
 
 
-        message.textContent =
-            "Unable to connect to the server.";
+        /*
+         * STEP 5:
+         * Validate required fields
+         */
 
-        message.style.color = "red";
+        if (!qualification) {
 
-    }
+            message.textContent =
+                "Please select your qualification.";
 
-}
+            message.style.color = "red";
 
-
-/* ==========================================
-   LOAD SAVED PROFILE
-   ========================================== */
-
-async function loadProfile() {
-
-    const userId =
-        localStorage.getItem("userId");
+            return;
+        }
 
 
-    if (
-        !userId ||
-        userId === "undefined" ||
-        userId === "null"
-    ) {
+        if (!field) {
 
-        addSkillRow();
+            message.textContent =
+                "Please select your field.";
 
-        return;
-    }
+            message.style.color = "red";
+
+            return;
+        }
 
 
-    try {
+        if (!interest) {
 
-        const response =
-            await fetch(
-                "/api/profile/" + userId
+            message.textContent =
+                "Please select your career interest.";
+
+            message.style.color = "red";
+
+            return;
+        }
+
+
+        /*
+         * STEP 6:
+         * Get selected skills
+         */
+
+        const skills =
+            getSelectedSkills();
+
+
+        /*
+         * STEP 7:
+         * Send profile to server
+         */
+
+        try {
+
+            const response =
+                await fetch("/api/profile", {
+
+                    method: "POST",
+
+                    credentials: "include",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        userId:
+                            Number(userId),
+
+                        userEmail:
+                            localStorage.getItem(
+                                "userEmail"
+                            ) || "",
+
+                        qualification:
+                            qualification,
+
+                        field:
+                            field,
+
+                        interest:
+                            interest,
+
+                        skills:
+                            skills
+                    })
+                });
+
+
+            const data =
+                await response.json();
+
+
+            /*
+             * STEP 8:
+             * Check server response
+             */
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+
+                message.textContent =
+                    data.message ||
+                    "Unable to save profile.";
+
+                message.style.color = "red";
+
+                return;
+            }
+
+
+            /*
+             * STEP 9:
+             * Success
+             */
+
+            message.textContent =
+                "Profile saved successfully!";
+
+            message.style.color = "green";
+
+
+            /*
+             * STEP 10:
+             * Go to career recommendations
+             */
+
+            setTimeout(function() {
+
+                window.location.href =
+                    "career.html";
+
+            }, 700);
+
+
+        } catch (error) {
+
+            console.error(
+                "Profile save error:",
+                error
             );
 
+            message.textContent =
+                "Unable to connect to the server.";
 
-        const data =
-            await response.json();
+            message.style.color = "red";
+        }
+    }
 
 
-        if (!data.success) {
+    /*
+     * ============================================================
+     * LOAD EXISTING PROFILE
+     * ============================================================
+     */
+
+    async function loadProfile() {
+
+        let userId =
+            localStorage.getItem("userId");
+
+
+        /*
+         * If localStorage is empty,
+         * try the server session.
+         */
+
+        if (
+            !userId ||
+            userId === "undefined" ||
+            userId === "null"
+        ) {
+
+            try {
+
+                const response =
+                    await fetch("/api/session", {
+                        credentials: "include"
+                    });
+
+                const data =
+                    await response.json();
+
+
+                if (
+                    response.ok &&
+                    data.success &&
+                    data.user &&
+                    data.user.id
+                ) {
+
+                    userId =
+                        String(data.user.id);
+
+                    localStorage.setItem(
+                        "userId",
+                        userId
+                    );
+
+                    localStorage.setItem(
+                        "userName",
+                        data.user.full_name || ""
+                    );
+
+                    localStorage.setItem(
+                        "userEmail",
+                        data.user.email || ""
+                    );
+
+                    localStorage.setItem(
+                        "isLoggedIn",
+                        "true"
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Session loading failed:",
+                    error
+                );
+            }
+        }
+
+
+        /*
+         * If no user is logged in,
+         * show one empty skill row.
+         */
+
+        if (
+            !userId ||
+            userId === "undefined" ||
+            userId === "null"
+        ) {
 
             addSkillRow();
 
@@ -976,107 +998,160 @@ async function loadProfile() {
         }
 
 
-        if (data.profile) {
+        try {
 
-            document.getElementById(
-                "qualification"
-            ).value =
-                data.profile.qualification || "";
-
-
-            document.getElementById(
-                "field"
-            ).value =
-                data.profile.field || "";
+            const response =
+                await fetch(
+                    "/api/profile/" +
+                    encodeURIComponent(userId),
+                    {
+                        credentials: "include"
+                    }
+                );
 
 
-            document.getElementById(
-                "interest"
-            ).value =
-                data.profile.interest || "";
-
-
-            document.getElementById(
-                "skillsContainer"
-            ).innerHTML = "";
+            const data =
+                await response.json();
 
 
             if (
-                data.profile.skills &&
-                data.profile.skills.length > 0
+                !response.ok ||
+                !data.success
             ) {
 
-                data.profile.skills.forEach(
-                    function(skill) {
+                addSkillRow();
 
-                        if (
-                            typeof skill === "string"
-                        ) {
+                return;
+            }
 
-                            addSkillRow(
-                                skill,
-                                "Beginner"
-                            );
 
-                        } else {
+            /*
+             * Fill saved profile information
+             */
 
-                            addSkillRow(
-                                skill.name || "",
-                                skill.level || "Beginner"
-                            );
+            if (data.profile) {
 
+                document.getElementById(
+                    "qualification"
+                ).value =
+                    data.profile.qualification || "";
+
+                document.getElementById(
+                    "field"
+                ).value =
+                    data.profile.field || "";
+
+                document.getElementById(
+                    "interest"
+                ).value =
+                    data.profile.interest || "";
+
+
+                /*
+                 * Add saved skills
+                 */
+
+                const container =
+                    document.getElementById(
+                        "skillsContainer"
+                    );
+
+                container.innerHTML = "";
+
+
+                if (
+                    Array.isArray(
+                        data.profile.skills
+                    ) &&
+                    data.profile.skills.length > 0
+                ) {
+
+                    data.profile.skills.forEach(
+                        function(skill) {
+
+                            /*
+                             * Supports both:
+                             * {name, level}
+                             * and simple strings
+                             */
+
+                            if (
+                                typeof skill === "object"
+                            ) {
+
+                                addSkillRow(
+                                    skill.name || "",
+                                    skill.level || "Beginner"
+                                );
+
+                            } else {
+
+                                addSkillRow(
+                                    String(skill),
+                                    "Beginner"
+                                );
+                            }
                         }
+                    );
 
-                    }
-                );
+                } else {
+
+                    addSkillRow();
+                }
 
             } else {
 
                 addSkillRow();
-
             }
 
-        } else {
+
+        } catch (error) {
+
+            console.error(
+                "Profile loading error:",
+                error
+            );
 
             addSkillRow();
-
         }
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        addSkillRow();
-
     }
 
-}
+
+    /*
+     * ============================================================
+     * LOGOUT
+     * ============================================================
+     */
+
+    function logout() {
+
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("isLoggedIn");
+
+        window.location.href =
+            "login.html";
+    }
 
 
-/* ==========================================
-   LOGOUT
-   ========================================== */
+    /*
+     * ============================================================
+     * PAGE LOAD
+     * ============================================================
+     */
 
-function logout() {
+    document.addEventListener(
+        "DOMContentLoaded",
+        function() {
 
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("isLoggedIn");
+            loadProfile();
 
-    window.location.href =
-        "login.html";
-}
-
-
-/* ==========================================
-   START PAGE
-   ========================================== */
-
-loadProfile();
+        }
+    );
 
 </script>
 
 </body>
 </html>
+```
