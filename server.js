@@ -4,7 +4,8 @@ const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
+const HOST = "127.0.0.1";
 
 // =====================================================
 // SERVER SETUP
@@ -1261,7 +1262,6 @@ function calculateFieldMatch(
 
 
     // Exact
-
     const exact =
         careerFields.some(item =>
             normalizeText(item) === field
@@ -1278,7 +1278,6 @@ function calculateFieldMatch(
 
 
     // Related
-
     const related =
         careerFields.some(item =>
             textMatches(
@@ -1582,38 +1581,28 @@ function calculateCareerScore(
 // =====================================================
 // REGISTER
 // =====================================================
-
 app.post("/api/register", (req, res) => {
 
     const {
-        full_name,
+        fullName,
         email,
         password
     } = req.body;
 
-
     if (
-        !full_name ||
+        !fullName ||
         !email ||
         !password
     ) {
 
         return res.status(400).json({
-
             success: false,
-
-            message:
-                "All fields are required."
+            message: "All fields are required."
         });
     }
 
-
-    const cleanName =
-        full_name.trim();
-
-    const cleanEmail =
-        email.trim().toLowerCase();
-
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     db.run(
         `
@@ -1634,46 +1623,31 @@ app.post("/api/register", (req, res) => {
             if (err) {
 
                 if (
-                    err.message.includes(
-                        "UNIQUE"
-                    )
+                    err.message.includes("UNIQUE")
                 ) {
 
                     return res.status(400).json({
-
                         success: false,
-
                         message:
                             "An account with this email already exists."
                     });
                 }
-
 
                 console.error(
                     "Registration error:",
                     err.message
                 );
 
-
                 return res.status(500).json({
-
                     success: false,
-
-                    message:
-                        "Registration failed."
+                    message: "Registration failed."
                 });
             }
 
-
             return res.json({
-
                 success: true,
-
-                message:
-                    "Registration successful!",
-
-                userId:
-                    this.lastID
+                message: "Registration successful!",
+                userId: this.lastID
             });
         }
     );
@@ -2422,14 +2396,34 @@ app.use(
 // START SERVER
 // =====================================================
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(
+    PORT,
+    HOST,
+    () => {
 
-    console.log("");
-    console.log("======================================");
-    console.log(" Career Guidance Portal Server");
-    console.log("======================================");
-    console.log(`Server running on port ${PORT}`);
-    console.log("");
-    console.log("Press Ctrl + C to stop the server.");
-    console.log("");
-});
+        console.log("");
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            " Career Guidance Portal Server"
+        );
+
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            `Server running at http://${HOST}:${PORT}`
+        );
+
+        console.log("");
+
+        console.log(
+            "Press Ctrl + C to stop the server."
+        );
+
+        console.log("");
+    }
+);
