@@ -4,8 +4,7 @@ const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 
-const PORT = 3000;
-const HOST = "127.0.0.1";
+const PORT = process.env.PORT || 3000;
 
 // =====================================================
 // SERVER SETUP
@@ -1262,6 +1261,7 @@ function calculateFieldMatch(
 
 
     // Exact
+
     const exact =
         careerFields.some(item =>
             normalizeText(item) === field
@@ -1278,6 +1278,7 @@ function calculateFieldMatch(
 
 
     // Related
+
     const related =
         careerFields.some(item =>
             textMatches(
@@ -2421,34 +2422,14 @@ app.use(
 // START SERVER
 // =====================================================
 
-app.listen(
-    PORT,
-    HOST,
-    () => {
+app.listen(PORT, "0.0.0.0", () => {
 
-        console.log("");
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            " Career Guidance Portal Server"
-        );
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            `Server running at http://${HOST}:${PORT}`
-        );
-
-        console.log("");
-
-        console.log(
-            "Press Ctrl + C to stop the server."
-        );
-
-        console.log("");
-    }
-);
+    console.log("");
+    console.log("======================================");
+    console.log(" Career Guidance Portal Server");
+    console.log("======================================");
+    console.log(`Server running on port ${PORT}`);
+    console.log("");
+    console.log("Press Ctrl + C to stop the server.");
+    console.log("");
+});
