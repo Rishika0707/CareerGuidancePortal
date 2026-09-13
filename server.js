@@ -2398,7 +2398,7 @@ app.use(
 
 app.listen(
     PORT,
-    HOST,
+    "0.0.0.0",
     () => {
 
         console.log("");
@@ -2415,7 +2415,7 @@ app.listen(
         );
 
         console.log(
-            `Server running at http://${HOST}:${PORT}`
+            `Server running on port ${PORT}`
         );
 
         console.log("");
