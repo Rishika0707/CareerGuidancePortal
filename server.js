@@ -1,21 +1,35 @@
 const express = require("express");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const db = new sqlite3.Database(
-    path.join(__dirname, "career_guidance.db"),
-    (err) => {
-        if (err) {
-            console.error("Database connection error:", err.message);
-        } else {
-            console.log("Connected to SQLite database.");
-        }
-    }
-);
+function hashUserPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+    const hash = crypto.scryptSync(password, salt, 64).toString("hex");
 
+    return {
+        hash,
+        salt
+    };
+}
+
+function verifyUserPassword(password, storedHash, salt) {
+    try {
+        const hash = crypto.scryptSync(password, salt, 64);
+
+        const storedBuffer = Buffer.from(storedHash, "hex");
+
+        if (hash.length !== storedBuffer.length) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(hash, storedBuffer);
+    } catch (error) {
+        return false;
+    }
+}
 
 // ============================================================
 // MIDDLEWARE
@@ -23,107 +37,541 @@ const db = new sqlite3.Database(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
 
 
 // ============================================================
-// LOGIN COOKIE
+// DATABASE CONNECTION
 // ============================================================
 
-function getLoggedInUserId(req) {
-
-    const cookieHeader = req.headers.cookie || "";
-
-    const cookies = {};
-
-    cookieHeader.split(";").forEach(cookie => {
-
-        const parts = cookie.trim().split("=");
-
-        if (parts.length >= 2) {
-
-            cookies[parts[0]] = decodeURIComponent(
-                parts.slice(1).join("=")
+const db = new sqlite3.Database(
+    path.join(__dirname, "career_guidance.db"),
+    (err) => {
+        if (err) {
+            console.error(
+                "Database connection error:",
+                err.message
             );
+        } else {
+            console.log(
+                "Connected to SQLite database."
+            );
+        }
+    }
+);
 
+
+// ============================================================
+// GENERAL HELPER FUNCTIONS
+// ============================================================
+
+function parseJSON(value) {
+    if (!value) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+
+        if (Array.isArray(parsed)) {
+            return parsed;
         }
 
-    });
+        return [];
+    } catch {
+        return [];
+    }
+}
 
-    return cookies.career_user_id || "";
+
+function stringifyJSON(value) {
+    if (value === undefined || value === null) {
+        return "[]";
+    }
+
+    if (typeof value === "string") {
+        try {
+            JSON.parse(value);
+            return value;
+        } catch {
+            return JSON.stringify([value]);
+        }
+    }
+
+    return JSON.stringify(value);
 }
 
 
 // ============================================================
-// DATABASE TABLES
+// ADMIN PASSWORD SECURITY
+// ============================================================
+
+function hashAdminPassword(password, salt) {
+    return crypto
+        .scryptSync(password, salt, 64)
+        .toString("hex");
+}
+
+
+function createAdminPasswordHash(password) {
+    const salt = crypto
+        .randomBytes(16)
+        .toString("hex");
+
+    const hash = hashAdminPassword(
+        password,
+        salt
+    );
+
+    return {
+        salt: salt,
+        hash: hash
+    };
+}
+
+
+function verifyAdminPassword(
+    password,
+    storedHash,
+    storedSalt
+) {
+    try {
+        const hash = hashAdminPassword(
+            password,
+            storedSalt
+        );
+
+        const storedBuffer =
+            Buffer.from(storedHash, "hex");
+
+        const hashBuffer =
+            Buffer.from(hash, "hex");
+
+        if (
+            storedBuffer.length !==
+            hashBuffer.length
+        ) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(
+            storedBuffer,
+            hashBuffer
+        );
+    } catch {
+        return false;
+    }
+}
+
+
+// ============================================================
+// COOKIE HELPER
+// ============================================================
+
+function getCookie(req, name) {
+    const cookieHeader = req.headers.cookie;
+
+    if (!cookieHeader) {
+        return null;
+    }
+
+    const cookies = {};
+
+    cookieHeader
+        .split(";")
+        .forEach(cookie => {
+            const parts = cookie.trim().split("=");
+
+            const key = parts.shift();
+
+            if (!key) {
+                return;
+            }
+
+            cookies[key] = decodeURIComponent(
+                parts.join("=")
+            );
+        });
+
+    return cookies[name] || null;
+}
+
+
+// ============================================================
+// ADMIN SESSION CHECK
+// ============================================================
+
+function getAdminFromSession(req, callback) {
+    const token = getCookie(
+        req,
+        "career_admin_session"
+    );
+
+    if (!token) {
+        return callback(null, null);
+    }
+
+    const sql = `
+        SELECT
+            admins.id,
+            admins.full_name,
+            admins.email
+        FROM admin_sessions
+        INNER JOIN admins
+            ON admins.id = admin_sessions.admin_id
+        WHERE admin_sessions.session_token = ?
+    `;
+
+    db.get(
+        sql,
+        [token],
+        (err, admin) => {
+            if (err) {
+                return callback(err);
+            }
+
+            callback(null, admin || null);
+        }
+    );
+}
+
+
+// ============================================================
+// ADMIN API PROTECTION
+// ============================================================
+
+function requireAdmin(req, res, next) {
+    getAdminFromSession(
+        req,
+        (err, admin) => {
+
+            if (err) {
+                console.error(
+                    "Admin authentication error:",
+                    err.message
+                );
+
+                return res.status(500).json({
+                    success: false,
+                    message:
+                        "Authentication error."
+                });
+            }
+
+            if (!admin) {
+                return res.status(401).json({
+                    success: false,
+                    message:
+                        "Admin login required."
+                });
+            }
+
+            req.admin = admin;
+
+            next();
+        }
+    );
+}
+
+
+// ============================================================
+// CREATE ADMIN TABLES
 // ============================================================
 
 db.serialize(() => {
 
     db.run(`
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS admins (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             full_name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password_hash TEXT NOT NULL,
+            password_salt TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `, err => {
-
         if (err) {
-            console.error("Users table error:", err.message);
+            console.error(
+                "Admins table error:",
+                err.message
+            );
         } else {
-            console.log("Users table ready.");
+            console.log(
+                "Admins table ready."
+            );
         }
-
     });
 
 
     db.run(`
-        CREATE TABLE IF NOT EXISTS profiles (
+        CREATE TABLE IF NOT EXISTS admin_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            qualification TEXT,
-            field TEXT,
-            interest TEXT,
-            skills TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            admin_id INTEGER NOT NULL,
+            session_token TEXT UNIQUE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(admin_id)
+                REFERENCES admins(id)
         )
     `, err => {
-
         if (err) {
-            console.error("Profiles table error:", err.message);
+            console.error(
+                "Admin sessions table error:",
+                err.message
+            );
         } else {
-            console.log("Profiles table ready.");
+            console.log(
+                "Admin sessions table ready."
+            );
         }
-
     });
 
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS careers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            career_name TEXT UNIQUE NOT NULL,
-            minimum_qualification TEXT,
-            interests TEXT,
-            fields TEXT,
-            skills TEXT,
-            required_skills TEXT,
-            timeline TEXT,
-            reason TEXT,
-            roadmap TEXT,
-            resources TEXT
-        )
-    `, err => {
+    // --------------------------------------------------------
+    // CREATE DEFAULT ADMIN
+    // --------------------------------------------------------
 
-        if (err) {
-            console.error("Careers table error:", err.message);
-        } else {
-            console.log("Careers table ready.");
-            checkCareerDatabase();
+    const adminEmail =
+        "admin@careerguide.com";
+
+    const adminPassword =
+        "Admin@123";
+
+    db.get(
+        `
+        SELECT id
+        FROM admins
+        WHERE email = ?
+        `,
+        [adminEmail],
+        (err, existingAdmin) => {
+
+            if (err) {
+                console.error(
+                    "Admin check error:",
+                    err.message
+                );
+
+                return;
+            }
+
+            if (existingAdmin) {
+                console.log(
+                    "Default admin already exists."
+                );
+
+                return;
+            }
+
+            const passwordData =
+                createAdminPasswordHash(
+                    adminPassword
+                );
+
+            db.run(
+                `
+                INSERT INTO admins
+                (
+                    full_name,
+                    email,
+                    password_hash,
+                    password_salt
+                )
+                VALUES (?, ?, ?, ?)
+                `,
+                [
+                    "System Administrator",
+                    adminEmail,
+                    passwordData.hash,
+                    passwordData.salt
+                ],
+                function (insertErr) {
+
+                    if (insertErr) {
+                        console.error(
+                            "Default admin creation error:",
+                            insertErr.message
+                        );
+
+                        return;
+                    }
+
+                    console.log(
+                        "Default admin created."
+                    );
+                }
+            );
         }
+    );
+});
 
-    });
 
+// ============================================================
+// VALID SKILLS
+// ============================================================
+
+const VALID_SKILLS = [
+    "Programming",
+    "Communication",
+    "Design",
+    "Data Analysis",
+    "Management",
+    "Writing",
+    "Research",
+    "SEO",
+    "Digital Marketing",
+    "Social Media Marketing",
+    "Content Writing",
+    "Problem Solving",
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "Git",
+    "GitHub",
+    "UI/UX",
+    "Graphic Design",
+    "Microsoft Office",
+    "Excel",
+    "Google Analytics"
+];
+
+
+// ============================================================
+// USERS TABLE
+// ============================================================
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        password_salt TEXT
+    )
+`, err => {
+
+    if (err) {
+        console.error(
+            "Users table error:",
+            err.message
+        );
+    } else {
+        console.log(
+            "Users table ready."
+        );
+
+        // Add password_salt to an existing database
+        // if the column does not already exist.
+        db.all(
+            `PRAGMA table_info(users)`,
+            [],
+            (pragmaErr, columns) => {
+
+                if (pragmaErr) {
+                    console.error(
+                        "Users table check error:",
+                        pragmaErr.message
+                    );
+                    return;
+                }
+
+                const hasPasswordSalt = columns.some(
+                    column => column.name === "password_salt"
+                );
+
+                if (!hasPasswordSalt) {
+
+                    db.run(
+                        `ALTER TABLE users ADD COLUMN password_salt TEXT`,
+                        alterErr => {
+
+                            if (alterErr) {
+                                console.error(
+                                    "Password salt column error:",
+                                    alterErr.message
+                                );
+                            } else {
+                                console.log(
+                                    "Password salt column added."
+                                );
+                            }
+                        }
+                    );
+
+                } else {
+
+                    console.log(
+                        "Password salt column already exists."
+                    );
+                }
+            }
+        );
+    }
+});
+
+
+// ============================================================
+// PROFILES TABLE
+// ============================================================
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER UNIQUE NOT NULL,
+        qualification TEXT,
+        field TEXT,
+        interest TEXT,
+        skills TEXT,
+        FOREIGN KEY(user_id)
+            REFERENCES users(id)
+    )
+`, err => {
+
+    if (err) {
+        console.error(
+            "Profiles table error:",
+            err.message
+        );
+    } else {
+        console.log(
+            "Profiles table ready."
+        );
+    }
+});
+
+
+// ============================================================
+// CAREERS TABLE
+// ============================================================
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS careers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        career_name TEXT UNIQUE NOT NULL,
+        minimum_qualification TEXT,
+        interests TEXT,
+        fields TEXT,
+        skills TEXT,
+        required_skills TEXT,
+        timeline TEXT,
+        reason TEXT,
+        roadmap TEXT,
+        resources TEXT
+    )
+`, err => {
+
+    if (err) {
+        console.error(
+            "Careers table error:",
+            err.message
+        );
+
+        return;
+    }
+
+    console.log(
+        "Careers table ready."
+    );
+
+    updateCareerDatabase();
 });
 
 
@@ -131,306 +579,660 @@ db.serialize(() => {
 // CAREER DATA
 // ============================================================
 
-const careers = [
+const careerData = [
 
-    // --------------------------------------------------------
-    // 1. WEB DEVELOPER
-    // --------------------------------------------------------
+    // ========================================================
+    // 1. AI / MACHINE LEARNING ENGINEER
+    // ========================================================
 
     {
-        career_name: "Web Developer",
+        career_name: "AI / Machine Learning Engineer",
+
         minimum_qualification: "Bachelor",
 
         interests: [
-            "Technology & Computers",
+            "Mathematics & Data",
             "Programming",
-            "Technology",
-            "Web Development"
+            "Technology & Computers"
         ],
 
         fields: [
             "Computer Science",
+            "Computer",
+            "Data Science",
+            "Engineering",
             "Information Technology",
             "IT",
-            "Computer",
-            "Engineering"
+            "Mathematics",
+            "Statistics"
         ],
 
         skills: [
+            "Machine Learning",
+            "Python",
             "Programming",
-            "Web Development",
-            "HTML",
-            "CSS",
-            "JavaScript"
+            "Data Analysis",
+            "Statistics"
         ],
 
         required_skills: [
-            "HTML",
-            "CSS",
-            "JavaScript",
-            "Git",
-            "GitHub",
+            "Python",
+            "Machine Learning",
+            "Statistics",
+            "Data Analysis",
+            "SQL",
+            "Problem Solving"
+        ],
+
+        timeline: "8–18 months",
+
+        reason:
+            "An AI / Machine Learning Engineer develops intelligent systems that learn from data and solve real-world problems.",
+
+        roadmap: [
+            "Learn Python programming",
+            "Learn mathematics and statistics",
+            "Learn data analysis",
+            "Learn machine learning fundamentals",
+            "Learn supervised and unsupervised learning",
+            "Practice with real datasets",
+            "Build machine learning projects",
+            "Create an AI / ML portfolio",
+            "Apply for internships and entry-level roles"
+        ],
+
+        resources: [
+            "Google Machine Learning Crash Course",
+            "Kaggle",
+            "scikit-learn Documentation",
+            "freeCodeCamp"
+        ]
+    },
+
+
+    // ========================================================
+    // 2. ANIMATOR
+    // ========================================================
+
+    {
+        career_name: "Animator",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Animation",
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Graphic Design"
+        ],
+
+        skills: [
+            "Animation",
+            "Drawing",
+            "Graphic Design",
+            "Illustration"
+        ],
+
+        required_skills: [
+            "Animation",
+            "Drawing",
+            "Illustration",
+            "Storyboarding",
+            "Graphic Design",
+            "Video Editing"
+        ],
+
+        timeline: "6–12 months",
+
+        reason:
+            "An Animator creates moving visual content for films, games, advertisements, websites and digital media.",
+
+        roadmap: [
+            "Learn drawing fundamentals",
+            "Learn animation principles",
+            "Practice storyboarding",
+            "Learn 2D or 3D animation software",
+            "Create short animations",
+            "Learn character design",
+            "Build animation projects",
+            "Create a showreel",
+            "Build a professional portfolio"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "Blender",
+            "Canva Design School"
+        ]
+    },
+
+
+    // ========================================================
+    // 3. ART DIRECTOR
+    // ========================================================
+
+    {
+        career_name: "Art Director",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Graphic Design",
+            "Mass Communication"
+        ],
+
+        skills: [
+            "Art Direction",
+            "Design",
+            "Graphic Design",
+            "Communication"
+        ],
+
+        required_skills: [
+            "Design",
+            "Graphic Design",
+            "Art Direction",
+            "Communication",
+            "Typography",
+            "Color Theory"
+        ],
+
+        timeline: "1–3 years",
+
+        reason:
+            "An Art Director develops the visual style and creative direction of advertising, media, branding and other creative projects.",
+
+        roadmap: [
+            "Learn design fundamentals",
+            "Develop strong visual communication skills",
+            "Learn typography and color theory",
+            "Practice graphic design",
+            "Study branding and visual identity",
+            "Build creative projects",
+            "Gain design experience",
+            "Develop leadership skills",
+            "Create a professional portfolio"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "Canva Design School",
+            "Behance"
+        ]
+    },
+
+
+    // ========================================================
+    // 4. BUSINESS ANALYST
+    // ========================================================
+
+    {
+        career_name: "Business Analyst",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Business & Management",
+            "Data Analysis",
+            "Management"
+        ],
+
+        fields: [
+            "Business",
+            "Commerce",
+            "Computer Science",
+            "IT",
+            "Management"
+        ],
+
+        skills: [
+            "Management",
+            "Data Analysis",
+            "Communication"
+        ],
+
+        required_skills: [
+            "Communication",
+            "Data Analysis",
+            "Excel",
+            "Problem Solving",
+            "Business Analysis",
+            "Documentation"
+        ],
+
+        timeline: "6–12 months",
+
+        reason:
+            "A Business Analyst helps organizations understand problems and improve business processes.",
+
+        roadmap: [
+            "Learn business fundamentals",
+            "Improve communication",
+            "Learn Excel",
+            "Learn data analysis",
+            "Learn business analysis techniques",
+            "Practice documentation",
+            "Create business case studies"
+        ],
+
+        resources: [
+            "IIBA",
+            "Microsoft Learn",
+            "Coursera"
+        ]
+    },
+
+
+    // ========================================================
+    // 5. CLOUD ENGINEER
+    // ========================================================
+
+    {
+        career_name: "Cloud Engineer",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Programming",
+            "Technology & Computers"
+        ],
+
+        fields: [
+            "Computer",
+            "Computer Science",
+            "Engineering",
+            "Information Technology",
+            "IT"
+        ],
+
+        skills: [
+            "Cloud Computing",
+            "Linux",
+            "Networking",
+            "Programming"
+        ],
+
+        required_skills: [
+            "Cloud Computing",
+            "Linux",
+            "Networking",
+            "Python",
+            "Cybersecurity",
             "Problem Solving"
         ],
 
         timeline: "6–12 months",
 
         reason:
-            "Good choice for students interested in technology, programming and building websites.",
+            "A Cloud Engineer designs, deploys and maintains applications and infrastructure on cloud platforms.",
 
         roadmap: [
-            "Learn HTML",
-            "Learn CSS",
-            "Learn JavaScript",
-            "Learn Git and GitHub",
-            "Build small websites",
-            "Learn backend development",
-            "Create a portfolio",
-            "Apply for internships and jobs"
+            "Learn computer networking",
+            "Learn Linux fundamentals",
+            "Learn cloud computing concepts",
+            "Learn AWS, Azure or Google Cloud",
+            "Learn cloud security basics",
+            "Practice deploying applications",
+            "Learn cloud monitoring",
+            "Build cloud projects",
+            "Apply for cloud internships and jobs"
         ],
 
         resources: [
-            "HTML and CSS tutorials",
-            "JavaScript tutorials",
-            "Git and GitHub practice",
-            "Frontend projects",
-            "Web development projects"
+            "AWS Skill Builder",
+            "Microsoft Learn",
+            "Google Cloud Skills Boost"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 2. DATA ANALYST
-    // --------------------------------------------------------
+    // ========================================================
+    // 6. CONTENT WRITER
+    // ========================================================
 
     {
-        career_name: "Data Analyst",
+        career_name: "Content Writer",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Writing",
+            "Writing & Content"
+        ],
+
+        fields: [
+            "Arts",
+            "English",
+            "Fine Arts",
+            "Journalism",
+            "Mass Communication"
+        ],
+
+        skills: [
+            "Research",
+            "Writing"
+        ],
+
+        required_skills: [
+            "Writing",
+            "Grammar",
+            "Research",
+            "SEO",
+            "Editing"
+        ],
+
+        timeline: "3–6 months",
+
+        reason:
+            "A Content Writer creates written content for websites, blogs, businesses and digital platforms.",
+
+        roadmap: [
+            "Improve grammar",
+            "Practice writing regularly",
+            "Learn research techniques",
+            "Learn basic SEO",
+            "Practice editing",
+            "Create writing samples",
+            "Build a writing portfolio"
+        ],
+
+        resources: [
+            "Grammarly",
+            "HubSpot Academy",
+            "Google Search Central"
+        ]
+    },
+
+
+    // ========================================================
+    // 7. CYBERSECURITY ANALYST
+    // ========================================================
+
+    {
+        career_name: "Cybersecurity Analyst",
+
         minimum_qualification: "Bachelor",
 
         interests: [
-            "Mathematics & Data",
-            "Data Analysis",
+            "Programming",
             "Technology & Computers"
         ],
 
         fields: [
+            "Computer",
             "Computer Science",
+            "Engineering",
             "Information Technology",
+            "IT"
+        ],
+
+        skills: [
+            "Cybersecurity",
+            "Linux",
+            "Networking",
+            "Programming"
+        ],
+
+        required_skills: [
+            "Cybersecurity",
+            "Networking",
+            "Linux",
+            "Python",
+            "Problem Solving",
+            "Security Fundamentals"
+        ],
+
+        timeline: "6–12 months",
+
+        reason:
+            "A Cybersecurity Analyst monitors systems, identifies security threats and helps protect organizations from cyber attacks.",
+
+        roadmap: [
+            "Learn computer fundamentals",
+            "Learn networking basics",
+            "Learn Linux",
+            "Learn cybersecurity fundamentals",
+            "Learn common security threats",
+            "Practice security monitoring",
+            "Learn basic Python scripting",
+            "Practice with cybersecurity labs",
+            "Build security projects",
+            "Apply for cybersecurity internships"
+        ],
+
+        resources: [
+            "Cisco Networking Academy",
+            "TryHackMe",
+            "Microsoft Learn",
+            "OWASP"
+        ]
+    },
+
+
+    // ========================================================
+    // 8. DATA ANALYST
+    // ========================================================
+
+    {
+        career_name: "Data Analyst",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Data Analysis",
+            "Mathematics & Data"
+        ],
+
+        fields: [
+            "Commerce",
+            "Computer Science",
+            "Economics",
             "IT",
             "Mathematics",
-            "Statistics",
-            "Commerce",
-            "Economics"
+            "Statistics"
         ],
 
         skills: [
             "Data Analysis",
-            "Excel",
-            "SQL",
-            "Python",
-            "Statistics"
+            "Excel"
         ],
 
         required_skills: [
             "Excel",
-            "SQL",
-            "Python",
-            "Statistics",
             "Data Analysis",
+            "SQL",
+            "Statistics",
+            "Python",
             "Data Visualization"
         ],
 
         timeline: "6–12 months",
 
         reason:
-            "Suitable for people who enjoy numbers, data and finding useful information from datasets.",
+            "A Data Analyst studies data and creates useful insights for business decisions.",
 
         roadmap: [
             "Learn Excel",
             "Learn SQL",
-            "Learn statistics",
+            "Learn basic statistics",
             "Learn Python for data analysis",
-            "Learn data visualization",
-            "Practice with datasets",
+            "Practice data visualization",
             "Build data analysis projects",
             "Create a portfolio"
         ],
 
         resources: [
-            "Excel practice",
-            "SQL tutorials",
-            "Python data analysis",
-            "Statistics courses",
-            "Data visualization projects"
+            "Kaggle",
+            "Microsoft Learn",
+            "freeCodeCamp"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 3. UI/UX DESIGNER
-    // --------------------------------------------------------
+    // ========================================================
+    // 9. DATA ENTRY OPERATOR
+    // ========================================================
 
     {
-        career_name: "UI/UX Designer",
-        minimum_qualification: "Bachelor",
+        career_name: "Data Entry Operator",
+
+        minimum_qualification: "12th",
 
         interests: [
-            "Art & Design",
-            "Design",
-            "Technology & Computers",
-            "Creativity"
-        ],
-
-        fields: [
-            "Fine Art",
-            "Fine Arts",
-            "Design",
-            "Arts",
-            "Graphic Design",
-            "Animation",
-            "Computer Science",
-            "Information Technology"
-        ],
-
-        skills: [
-            "UI Design",
-            "UX Design",
-            "Figma",
-            "Graphic Design",
-            "Creativity"
-        ],
-
-        required_skills: [
-            "Figma",
-            "UI Design",
-            "UX Design",
-            "Wireframing",
-            "Prototyping",
-            "User Research"
-        ],
-
-        timeline: "6–12 months",
-
-        reason:
-            "Suitable for creative students interested in designing websites, apps and user experiences.",
-
-        roadmap: [
-            "Learn design principles",
-            "Learn Figma",
-            "Learn wireframing",
-            "Learn prototyping",
-            "Study UX research",
-            "Create mobile and website designs",
-            "Build a portfolio",
-            "Apply for internships"
-        ],
-
-        resources: [
-            "Figma tutorials",
-            "UI design practice",
-            "UX design tutorials",
-            "Design case studies",
-            "Portfolio projects"
-        ]
-    },
-
-
-    // --------------------------------------------------------
-    // 4. BUSINESS ANALYST
-    // --------------------------------------------------------
-
-    {
-        career_name: "Business Analyst",
-        minimum_qualification: "Bachelor",
-
-        interests: [
-            "Business & Management",
-            "Management",
             "Data Analysis",
-            "Business"
+            "Management"
         ],
 
         fields: [
-            "Management",
+            "Arts",
             "Business",
             "Commerce",
-            "Computer Science",
-            "Information Technology",
-            "Economics"
+            "Management"
         ],
 
         skills: [
-            "Business Analysis",
-            "Communication",
-            "Excel",
-            "Problem Solving",
-            "Data Analysis"
+            "Data Analysis",
+            "Microsoft Office"
         ],
 
         required_skills: [
-            "Business Analysis",
-            "Communication",
+            "Typing",
             "Excel",
-            "Problem Solving",
-            "Data Analysis",
-            "Requirements Analysis"
+            "Microsoft Office",
+            "Data Accuracy",
+            "Organization"
         ],
 
-        timeline: "6–12 months",
+        timeline: "1–3 months",
 
         reason:
-            "Good career for people who enjoy business problems, communication and analysing information.",
+            "A Data Entry Operator enters, updates and maintains information accurately.",
 
         roadmap: [
-            "Learn business analysis basics",
-            "Improve communication",
+            "Improve typing speed",
             "Learn Excel",
-            "Learn data analysis",
-            "Learn requirement gathering",
-            "Practice business case studies",
-            "Create sample projects",
-            "Apply for internships"
+            "Learn Microsoft Office",
+            "Practice data accuracy",
+            "Learn file organization",
+            "Practice real data entry tasks"
         ],
 
         resources: [
-            "Business analysis tutorials",
-            "Excel",
-            "Case studies",
-            "Business communication",
-            "Data analysis"
+            "Microsoft Learn",
+            "Google Workspace Learning Center"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 5. DIGITAL MARKETING SPECIALIST
-    // --------------------------------------------------------
+    // ========================================================
+    // 10. DATA SCIENTIST
+    // ========================================================
+
+    {
+        career_name: "Data Scientist",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Data Analysis",
+            "Mathematics & Data",
+            "Programming"
+        ],
+
+        fields: [
+            "Computer Science",
+            "Data Science",
+            "Economics",
+            "IT",
+            "Mathematics",
+            "Statistics"
+        ],
+
+        skills: [
+            "Data Analysis",
+            "Machine Learning",
+            "Python",
+            "Statistics"
+        ],
+
+        required_skills: [
+            "Python",
+            "Statistics",
+            "Data Analysis",
+            "Machine Learning",
+            "SQL",
+            "Data Visualization"
+        ],
+
+        timeline: "8–18 months",
+
+        reason:
+            "A Data Scientist uses statistics, programming and machine learning to discover patterns and insights from data.",
+
+        roadmap: [
+            "Learn Python",
+            "Learn statistics and probability",
+            "Learn data analysis",
+            "Learn SQL",
+            "Learn data visualization",
+            "Learn machine learning",
+            "Practice with real datasets",
+            "Build data science projects",
+            "Create a portfolio",
+            "Apply for internships and entry-level roles"
+        ],
+
+        resources: [
+            "Kaggle",
+            "Google Colab",
+            "scikit-learn Documentation",
+            "freeCodeCamp"
+        ]
+    },
+
+
+    // ========================================================
+    // 11. DIGITAL MARKETING SPECIALIST
+    // ========================================================
 
     {
         career_name: "Digital Marketing Specialist",
+
         minimum_qualification: "12th",
 
         interests: [
             "Business & Management",
-            "Writing & Content",
             "Communication",
-            "Marketing"
+            "Writing"
         ],
 
         fields: [
+            "Arts",
+            "Business",
             "Commerce",
             "Management",
-            "Marketing",
-            "Arts",
-            "Any Field"
+            "Marketing"
         ],
 
         skills: [
+            "Communication",
             "Digital Marketing",
-            "Social Media Marketing",
             "SEO",
-            "Content Writing",
-            "Communication"
+            "Writing"
         ],
 
         required_skills: [
@@ -445,230 +1247,518 @@ const careers = [
         timeline: "3–6 months",
 
         reason:
-            "Suitable for people interested in marketing, communication, social media and online businesses.",
+            "A Digital Marketing Specialist promotes products and services using online marketing channels.",
 
         roadmap: [
-            "Learn digital marketing basics",
+            "Learn digital marketing fundamentals",
             "Learn SEO",
             "Learn social media marketing",
-            "Learn content marketing",
-            "Learn analytics",
-            "Practice with sample campaigns",
-            "Build a portfolio",
-            "Apply for internships"
+            "Practice content writing",
+            "Learn Google Analytics",
+            "Run small marketing projects",
+            "Build a digital marketing portfolio"
         ],
 
         resources: [
-            "SEO tutorials",
-            "Social media marketing",
-            "Content marketing",
-            "Google Analytics",
-            "Digital marketing projects"
+            "Google Skillshop",
+            "HubSpot Academy",
+            "Semrush Academy"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 6. CONTENT WRITER
-    // --------------------------------------------------------
+    // ========================================================
+    // 12. DEVOPS ENGINEER
+    // ========================================================
 
     {
-        career_name: "Content Writer",
-        minimum_qualification: "12th",
+        career_name: "DevOps Engineer",
+
+        minimum_qualification: "Bachelor",
 
         interests: [
-            "Writing & Content",
-            "Writing",
-            "Communication"
+            "Programming",
+            "Technology & Computers"
         ],
 
         fields: [
-            "Arts",
-            "Fine Arts",
-            "Commerce",
-            "Science",
+            "Computer",
             "Computer Science",
+            "Engineering",
             "Information Technology",
-            "Any Field"
+            "IT"
         ],
 
         skills: [
-            "Writing",
-            "Content Writing",
-            "Grammar",
-            "Research",
-            "SEO"
+            "Cloud Computing",
+            "Git",
+            "Linux",
+            "Programming"
         ],
 
         required_skills: [
-            "Writing",
-            "Grammar",
-            "Research",
-            "SEO",
-            "Editing"
+            "Linux",
+            "Git",
+            "Cloud Computing",
+            "Python",
+            "Networking",
+            "Problem Solving"
         ],
 
-        timeline: "3–6 months",
+        timeline: "8–15 months",
 
         reason:
-            "Good option for people who enjoy writing, research and creating online content.",
+            "A DevOps Engineer helps development and operations teams build, deploy and maintain software efficiently.",
 
         roadmap: [
-            "Improve grammar",
-            "Practice writing",
-            "Learn content writing",
-            "Learn SEO",
-            "Learn editing",
-            "Create sample articles",
-            "Build a writing portfolio",
-            "Apply for writing jobs"
+            "Learn Linux",
+            "Learn networking fundamentals",
+            "Learn Git and GitHub",
+            "Learn Python or scripting",
+            "Learn cloud computing",
+            "Learn CI/CD concepts",
+            "Learn containers and Docker",
+            "Practice deployment automation",
+            "Build DevOps projects",
+            "Apply for DevOps internships"
         ],
 
         resources: [
-            "Writing practice",
-            "Grammar resources",
-            "SEO tutorials",
-            "Blog writing",
-            "Content writing projects"
+            "Docker Documentation",
+            "AWS Skill Builder",
+            "Microsoft Learn",
+            "GitHub Skills"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 7. GRAPHIC DESIGNER
-    // --------------------------------------------------------
+    // ========================================================
+    // 13. FASHION DESIGNER
+    // ========================================================
 
     {
-        career_name: "Graphic Designer",
+        career_name: "Fashion Designer",
+
         minimum_qualification: "12th",
 
         interests: [
             "Art & Design",
-            "Design",
-            "Creativity"
+            "Design"
         ],
 
         fields: [
-            "Fine Art",
-            "Fine Arts",
-            "Design",
             "Arts",
-            "Graphic Design",
-            "Animation"
+            "Design",
+            "Fine Arts",
+            "Fashion Design"
         ],
 
         skills: [
-            "Graphic Design",
-            "Adobe Photoshop",
-            "Adobe Illustrator",
-            "Canva",
-            "Creativity"
+            "Design",
+            "Drawing",
+            "Fashion Design",
+            "Illustration"
         ],
 
         required_skills: [
-            "Graphic Design",
-            "Photoshop",
-            "Illustrator",
-            "Canva",
-            "Typography",
-            "Creativity"
+            "Fashion Design",
+            "Drawing",
+            "Illustration",
+            "Color Theory",
+            "Textile Knowledge",
+            "Design"
         ],
 
-        timeline: "3–6 months",
+        timeline: "6–18 months",
 
         reason:
-            "Suitable for creative students who enjoy visual design and creating graphics.",
+            "A Fashion Designer creates clothing, accessories and fashion concepts based on design, materials and customer preferences.",
 
         roadmap: [
-            "Learn design principles",
-            "Learn Canva",
-            "Learn Photoshop",
-            "Learn Illustrator",
-            "Practice typography",
-            "Create posters and social media designs",
-            "Build a portfolio",
-            "Apply for internships"
+            "Learn fashion design fundamentals",
+            "Practice fashion illustration",
+            "Learn color theory",
+            "Study fabrics and textiles",
+            "Learn garment construction basics",
+            "Create fashion design concepts",
+            "Build a fashion portfolio",
+            "Create sample collections",
+            "Apply for internships or freelance opportunities"
         ],
 
         resources: [
-            "Canva",
-            "Photoshop tutorials",
-            "Illustrator tutorials",
-            "Graphic design practice",
-            "Design portfolio projects"
+            "Adobe Learn",
+            "Canva Design School",
+            "Fashionary"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 8. OFFICE ASSISTANT
-    // --------------------------------------------------------
+    // ========================================================
+    // 14. FINE ARTIST
+    // ========================================================
 
     {
-        career_name: "Office Assistant",
+        career_name: "Fine Artist",
+
         minimum_qualification: "12th",
 
         interests: [
-            "Business & Management",
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Arts",
+            "Fine Arts"
+        ],
+
+        skills: [
+            "Drawing",
+            "Painting",
+            "Illustration"
+        ],
+
+        required_skills: [
+            "Drawing",
+            "Painting",
+            "Illustration",
+            "Color Theory",
+            "Composition",
+            "Art Techniques"
+        ],
+
+        timeline: "6–18 months",
+
+        reason:
+            "A Fine Artist creates original artwork using mediums such as drawing, painting, sculpture and mixed media.",
+
+        roadmap: [
+            "Learn drawing fundamentals",
+            "Practice observation and sketching",
+            "Learn color theory",
+            "Explore painting techniques",
+            "Study composition",
+            "Experiment with different art mediums",
+            "Create original artwork",
+            "Build an art portfolio",
+            "Participate in exhibitions and creative opportunities"
+        ],
+
+        resources: [
+            "Tate Learn",
+            "MoMA Learning",
+            "Adobe Learn"
+        ]
+    },
+
+
+    // ========================================================
+    // 15. GRAPHIC DESIGNER
+    // ========================================================
+
+    {
+        career_name: "Graphic Designer",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Animation",
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Graphic Design"
+        ],
+
+        skills: [
+            "Design",
+            "Graphic Design"
+        ],
+
+        required_skills: [
+            "Graphic Design",
+            "Design",
+            "Typography",
+            "Color Theory",
+            "Figma",
+            "Photoshop"
+        ],
+
+        timeline: "4–8 months",
+
+        reason:
+            "A Graphic Designer creates visual content for brands, businesses and digital media.",
+
+        roadmap: [
+            "Learn design principles",
+            "Learn typography",
+            "Learn color theory",
+            "Learn graphic design software",
+            "Practice logo and poster design",
+            "Create portfolio projects",
+            "Apply for design internships"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "Canva Design School",
+            "Figma Learn"
+        ]
+    },
+
+
+    // ========================================================
+    // 16. ILLUSTRATOR
+    // ========================================================
+
+    {
+        career_name: "Illustrator",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Animation",
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Graphic Design"
+        ],
+
+        skills: [
+            "Drawing",
+            "Illustration",
+            "Graphic Design"
+        ],
+
+        required_skills: [
+            "Drawing",
+            "Illustration",
+            "Digital Art",
+            "Color Theory",
+            "Composition",
+            "Graphic Design"
+        ],
+
+        timeline: "4–12 months",
+
+        reason:
+            "An Illustrator creates drawings and visual artwork for books, advertising, media, products and digital platforms.",
+
+        roadmap: [
+            "Practice drawing regularly",
+            "Learn illustration fundamentals",
+            "Learn color theory",
+            "Practice composition",
+            "Learn digital illustration tools",
+            "Develop a personal art style",
+            "Create illustration projects",
+            "Build an illustration portfolio",
+            "Find freelance or professional opportunities"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "Procreate",
+            "Canva Design School"
+        ]
+    },
+
+
+    // ========================================================
+    // 17. INTERIOR DESIGNER
+    // ========================================================
+
+    {
+        career_name: "Interior Designer",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Interior Design"
+        ],
+
+        skills: [
+            "Design",
+            "Drawing",
+            "Interior Design"
+        ],
+
+        required_skills: [
+            "Interior Design",
+            "Drawing",
+            "Space Planning",
+            "Color Theory",
+            "3D Design",
+            "Communication"
+        ],
+
+        timeline: "6–18 months",
+
+        reason:
+            "An Interior Designer plans and designs functional and attractive indoor spaces for homes, offices and commercial environments.",
+
+        roadmap: [
+            "Learn design fundamentals",
+            "Learn space planning",
+            "Learn color theory",
+            "Practice technical drawing",
+            "Learn interior design software",
+            "Learn 3D visualization",
+            "Create room design projects",
+            "Build an interior design portfolio",
+            "Apply for internships or freelance projects"
+        ],
+
+        resources: [
+            "Autodesk Learning",
+            "SketchUp Campus",
+            "Adobe Learn"
+        ]
+    },
+
+
+    // ========================================================
+    // 18. OFFICE ASSISTANT
+    // ========================================================
+
+    {
+        career_name: "Office Assistant",
+
+        minimum_qualification: "12th",
+
+        interests: [
             "Communication",
             "Management"
         ],
 
         fields: [
-            "Commerce",
             "Arts",
-            "Science",
-            "Any Field"
+            "Business",
+            "Commerce",
+            "Management"
         ],
 
         skills: [
             "Communication",
-            "Microsoft Office",
-            "Excel",
-            "Data Entry",
-            "Organization"
+            "Management",
+            "Microsoft Office"
         ],
 
         required_skills: [
             "Communication",
             "Microsoft Office",
             "Excel",
-            "Data Entry",
-            "Organization"
+            "Organization",
+            "Time Management"
         ],
 
         timeline: "1–3 months",
 
         reason:
-            "Suitable for students looking for administrative and office-based work.",
+            "An Office Assistant supports daily administrative and office operations.",
 
         roadmap: [
-            "Learn Microsoft Word",
-            "Learn Excel",
+            "Learn Microsoft Office",
             "Improve communication",
-            "Learn email writing",
-            "Learn office administration",
-            "Practice data entry",
-            "Prepare a resume",
-            "Apply for office jobs"
+            "Learn Excel basics",
+            "Improve organization skills",
+            "Practice office documentation",
+            "Learn email communication",
+            "Apply for office assistant roles"
         ],
 
         resources: [
-            "Microsoft Office",
-            "Excel",
-            "Communication skills",
-            "Office administration",
-            "Typing practice"
+            "Microsoft Learn",
+            "Google Workspace Learning Center"
         ]
     },
 
 
-    // --------------------------------------------------------
-    // 9. RETAIL ASSOCIATE
-    // --------------------------------------------------------
+    // ========================================================
+    // 19. PHOTOGRAPHER
+    // ========================================================
 
     {
-        career_name: "Retail Associate",
+        career_name: "Photographer",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Mass Communication"
+        ],
+
+        skills: [
+            "Photography",
+            "Photo Editing"
+        ],
+
+        required_skills: [
+            "Photography",
+            "Photo Editing",
+            "Composition",
+            "Lighting",
+            "Color Theory",
+            "Communication"
+        ],
+
+        timeline: "3–12 months",
+
+        reason:
+            "A Photographer creates professional images for events, products, businesses, media and creative projects.",
+
+        roadmap: [
+            "Learn camera fundamentals",
+            "Learn composition",
+            "Learn lighting",
+            "Practice different photography styles",
+            "Learn photo editing",
+            "Create photography projects",
+            "Build a photography portfolio",
+            "Create an online portfolio",
+            "Find freelance or professional opportunities"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "Nikon School",
+            "Canon Learning"
+        ]
+    },
+
+
+    // ========================================================
+    // 20. SALES ASSOCIATE
+    // ========================================================
+
+    {
+        career_name: "Sales Associate",
+
         minimum_qualification: "12th",
 
         interests: [
@@ -677,171 +1767,336 @@ const careers = [
         ],
 
         fields: [
-            "Commerce",
             "Arts",
-            "Science",
-            "Any Field"
+            "Business",
+            "Commerce",
+            "Management"
         ],
 
         skills: [
             "Communication",
-            "Customer Service",
+            "Management"
+        ],
+
+        required_skills: [
+            "Communication",
             "Sales",
-            "Teamwork"
+            "Customer Service",
+            "Negotiation",
+            "Product Knowledge"
+        ],
+
+        timeline: "1–3 months",
+
+        reason:
+            "A Sales Associate helps customers and contributes to business sales.",
+
+        roadmap: [
+            "Improve communication",
+            "Learn sales techniques",
+            "Learn customer service",
+            "Practice negotiation",
+            "Understand products",
+            "Gain sales experience"
+        ],
+
+        resources: [
+            "HubSpot Academy",
+            "Salesforce Trailhead"
+        ]
+    },
+
+
+    // ========================================================
+    // 21. SOFTWARE DEVELOPER
+    // ========================================================
+
+    {
+        career_name: "Software Developer",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Programming",
+            "Technology & Computers"
+        ],
+
+        fields: [
+            "Computer",
+            "Computer Science",
+            "Engineering",
+            "Information Technology",
+            "IT"
+        ],
+
+        skills: [
+            "Git",
+            "Problem Solving",
+            "Programming"
+        ],
+
+        required_skills: [
+            "Programming",
+            "Python",
+            "Java",
+            "Git",
+            "SQL",
+            "Problem Solving"
+        ],
+
+        timeline: "6–12 months",
+
+        reason:
+            "A Software Developer designs, builds, tests and maintains software applications.",
+
+        roadmap: [
+            "Learn programming fundamentals",
+            "Learn Python or Java",
+            "Learn data structures and algorithms",
+            "Learn SQL and databases",
+            "Learn Git and GitHub",
+            "Build software projects",
+            "Learn software development practices",
+            "Create a project portfolio",
+            "Apply for internships and jobs"
+        ],
+
+        resources: [
+            "freeCodeCamp",
+            "MDN Web Docs",
+            "GitHub Skills",
+            "Oracle Java Tutorials"
+        ]
+    },
+
+
+    // ========================================================
+    // 22. UI/UX DESIGNER
+    // ========================================================
+
+    {
+        career_name: "UI/UX Designer",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Animation",
+            "Arts",
+            "Design",
+            "Fine Art",
+            "Graphic Design"
+        ],
+
+        skills: [
+            "Design",
+            "UI/UX"
+        ],
+
+        required_skills: [
+            "UI/UX",
+            "Design",
+            "Figma",
+            "Wireframing",
+            "Prototyping",
+            "Communication"
+        ],
+
+        timeline: "4–8 months",
+
+        reason:
+            "A UI/UX Designer creates user-friendly and visually attractive digital experiences.",
+
+        roadmap: [
+            "Learn design principles",
+            "Learn Figma",
+            "Practice wireframing",
+            "Learn prototyping",
+            "Study user research",
+            "Create UI/UX case studies",
+            "Build a design portfolio"
+        ],
+
+        resources: [
+            "Figma Learn",
+            "Google UX Design resources",
+            "Interaction Design Foundation"
+        ]
+    },
+
+
+    // ========================================================
+    // 23. VIDEO EDITOR
+    // ========================================================
+
+    {
+        career_name: "Video Editor",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Art & Design",
+            "Design"
+        ],
+
+        fields: [
+            "Arts",
+            "Design",
+            "Fine Arts",
+            "Mass Communication"
+        ],
+
+        skills: [
+            "Video Editing",
+            "Graphic Design"
+        ],
+
+        required_skills: [
+            "Video Editing",
+            "Storytelling",
+            "Audio Editing",
+            "Color Grading",
+            "Graphic Design",
+            "Communication"
+        ],
+
+        timeline: "3–9 months",
+
+        reason:
+            "A Video Editor creates and edits video content for films, social media, advertisements, businesses and digital platforms.",
+
+        roadmap: [
+            "Learn video editing fundamentals",
+            "Learn editing software",
+            "Learn storytelling",
+            "Learn audio editing",
+            "Learn color correction",
+            "Practice short-form video editing",
+            "Create video projects",
+            "Build a video showreel",
+            "Create a professional portfolio"
+        ],
+
+        resources: [
+            "Adobe Learn",
+            "DaVinci Resolve Training",
+            "Blackmagic Design"
+        ]
+    },
+
+
+    // ========================================================
+    // 24. WEB DEVELOPER
+    // ========================================================
+
+    {
+        career_name: "Web Developer",
+
+        minimum_qualification: "Bachelor",
+
+        interests: [
+            "Programming",
+            "Technology & Computers"
+        ],
+
+        fields: [
+            "Computer",
+            "Computer Science",
+            "Engineering",
+            "Information Technology",
+            "IT"
+        ],
+
+        skills: [
+            "Programming"
+        ],
+
+        required_skills: [
+            "HTML",
+            "CSS",
+            "JavaScript",
+            "Git",
+            "GitHub",
+            "Problem Solving"
+        ],
+
+        timeline: "6–12 months",
+
+        reason:
+            "A Web Developer creates and maintains websites and web applications.",
+
+        roadmap: [
+            "Learn HTML and CSS",
+            "Learn JavaScript",
+            "Learn Git and GitHub",
+            "Build responsive websites",
+            "Learn a frontend framework",
+            "Create portfolio projects",
+            "Apply for internships and jobs"
+        ],
+
+        resources: [
+            "MDN Web Docs",
+            "freeCodeCamp",
+            "JavaScript.info"
+        ]
+    },
+
+
+    // ========================================================
+    // 25. RETAIL ASSOCIATE
+    // ========================================================
+
+    {
+        career_name: "Retail Associate",
+
+        minimum_qualification: "12th",
+
+        interests: [
+            "Business & Management",
+            "Communication"
+        ],
+
+        fields: [
+            "Arts",
+            "Business",
+            "Commerce",
+            "Management"
+        ],
+
+        skills: [
+            "Communication"
         ],
 
         required_skills: [
             "Communication",
             "Customer Service",
             "Sales",
-            "Teamwork",
+            "Product Knowledge",
             "Problem Solving"
         ],
 
         timeline: "1–3 months",
 
         reason:
-            "Suitable for people who enjoy interacting with customers and working in a retail environment.",
+            "A Retail Associate assists customers and supports daily store operations.",
 
         roadmap: [
             "Improve communication",
             "Learn customer service",
             "Learn basic sales",
-            "Practice teamwork",
-            "Learn product knowledge",
-            "Prepare a resume",
-            "Apply for retail positions"
+            "Understand product knowledge",
+            "Practice problem solving",
+            "Gain retail experience"
         ],
 
         resources: [
             "Customer service training",
-            "Sales basics",
-            "Communication practice",
-            "Retail training"
-        ]
-    },
-
-
-    // --------------------------------------------------------
-    // 10. SALES ASSOCIATE
-    // --------------------------------------------------------
-
-    {
-        career_name: "Sales Associate",
-        minimum_qualification: "12th",
-
-        interests: [
-            "Business & Management",
-            "Communication",
-            "Marketing"
-        ],
-
-        fields: [
-            "Commerce",
-            "Arts",
-            "Science",
-            "Management",
-            "Any Field"
-        ],
-
-        skills: [
-            "Sales",
-            "Communication",
-            "Customer Service",
-            "Negotiation"
-        ],
-
-        required_skills: [
-            "Sales",
-            "Communication",
-            "Customer Service",
-            "Negotiation",
-            "Presentation"
-        ],
-
-        timeline: "1–3 months",
-
-        reason:
-            "Good option for people who enjoy communication, convincing customers and business activities.",
-
-        roadmap: [
-            "Improve communication",
-            "Learn sales basics",
-            "Learn negotiation",
-            "Learn customer service",
-            "Practice presentations",
-            "Prepare a resume",
-            "Apply for sales jobs"
-        ],
-
-        resources: [
-            "Sales training",
-            "Communication practice",
-            "Negotiation skills",
-            "Customer service"
-        ]
-    },
-
-
-    // --------------------------------------------------------
-    // 11. DATA ENTRY OPERATOR
-    // --------------------------------------------------------
-
-    {
-        career_name: "Data Entry Operator",
-        minimum_qualification: "12th",
-
-        interests: [
-            "Mathematics & Data",
-            "Data Analysis",
-            "Business & Management"
-        ],
-
-        fields: [
-            "Commerce",
-            "Arts",
-            "Science",
-            "Computer Science",
-            "Information Technology",
-            "Any Field"
-        ],
-
-        skills: [
-            "Data Entry",
-            "Typing",
-            "Excel",
-            "Microsoft Office",
-            "Accuracy"
-        ],
-
-        required_skills: [
-            "Data Entry",
-            "Typing",
-            "Excel",
-            "Microsoft Office",
-            "Accuracy"
-        ],
-
-        timeline: "1–3 months",
-
-        reason:
-            "Suitable for people who prefer computer-based work involving data and accurate typing.",
-
-        roadmap: [
-            "Improve typing speed",
-            "Learn Excel",
-            "Learn Microsoft Office",
-            "Practice data entry",
-            "Improve accuracy",
-            "Prepare a resume",
-            "Apply for data entry jobs"
-        ],
-
-        resources: [
-            "Typing practice",
-            "Excel",
-            "Microsoft Office",
-            "Data entry practice"
+            "Sales training resources"
         ]
     }
 
@@ -849,686 +2104,209 @@ const careers = [
 
 
 // ============================================================
-// LARGE VALID SKILL LIBRARY
+// UPDATE CAREER DATABASE
 // ============================================================
 
-const VALID_SKILLS = [
-
-    // Technology
-    "Programming",
-    "Web Development",
-    "HTML",
-    "CSS",
-    "JavaScript",
-    "TypeScript",
-    "Python",
-    "Java",
-    "C",
-    "C++",
-    "C#",
-    "PHP",
-    "SQL",
-    "MySQL",
-    "SQLite",
-    "Node.js",
-    "Express.js",
-    "React",
-    "Angular",
-    "Vue.js",
-    "Git",
-    "GitHub",
-    "API Development",
-    "Backend Development",
-    "Frontend Development",
-    "Full Stack Development",
-    "Software Development",
-    "Software Testing",
-    "Debugging",
-    "Problem Solving",
-    "Data Structures",
-    "Algorithms",
-    "Cloud Computing",
-    "AWS",
-    "Microsoft Azure",
-    "Cybersecurity",
-    "Networking",
-    "Linux",
-    "Database Management",
-    "Computer Networking",
-
-    // Data
-    "Data Analysis",
-    "Data Analytics",
-    "Data Visualization",
-    "Statistics",
-    "Excel",
-    "Microsoft Excel",
-    "Power BI",
-    "Tableau",
-    "Machine Learning",
-    "Artificial Intelligence",
-    "Data Science",
-    "Research",
-    "Data Cleaning",
-    "Data Interpretation",
-
-    // Design
-    "Graphic Design",
-    "UI Design",
-    "UX Design",
-    "UI/UX Design",
-    "Figma",
-    "Adobe Photoshop",
-    "Photoshop",
-    "Adobe Illustrator",
-    "Illustrator",
-    "Canva",
-    "Wireframing",
-    "Prototyping",
-    "User Research",
-    "Typography",
-    "Creativity",
-    "Visual Design",
-    "Brand Design",
-    "Animation",
-    "Video Editing",
-
-    // Writing
-    "Writing",
-    "Content Writing",
-    "Creative Writing",
-    "Technical Writing",
-    "Copywriting",
-    "Blog Writing",
-    "Editing",
-    "Proofreading",
-    "Grammar",
-    "SEO",
-    "Content Marketing",
-    "Script Writing",
-    "Storytelling",
-    "Journalism",
-    "Social Media Content",
-
-    // Business
-    "Business Analysis",
-    "Business Management",
-    "Management",
-    "Digital Marketing",
-    "Marketing",
-    "Social Media Marketing",
-    "Email Marketing",
-    "Search Engine Optimization",
-    "Google Analytics",
-    "Market Research",
-    "Brand Management",
-    "Project Management",
-    "Product Management",
-    "Requirements Analysis",
-    "Business Communication",
-    "Presentation",
-    "Strategic Planning",
-
-    // Communication
-    "Communication",
-    "Verbal Communication",
-    "Written Communication",
-    "Teamwork",
-    "Leadership",
-    "Time Management",
-    "Organization",
-    "Adaptability",
-    "Critical Thinking",
-    "Decision Making",
-    "Negotiation",
-    "Interpersonal Skills",
-    "Customer Service",
-    "Public Speaking",
-
-    // Office
-    "Microsoft Office",
-    "Microsoft Word",
-    "Microsoft PowerPoint",
-    "Excel",
-    "Data Entry",
-    "Typing",
-    "Administrative Skills",
-    "Office Administration",
-    "Email Writing",
-    "Record Keeping",
-    "Documentation",
-    "Scheduling",
-    "Accuracy",
-
-    // Sales
-    "Sales",
-    "Retail",
-    "Product Knowledge",
-    "Lead Generation",
-    "Customer Relationship Management",
-    "CRM",
-
-    // Finance
-    "Accounting",
-    "Bookkeeping",
-    "Financial Analysis",
-    "Financial Management",
-    "Tally",
-    "Tally ERP",
-    "Taxation",
-    "Auditing",
-    "Budgeting",
-    "Economics",
-
-    // Education
-    "Teaching",
-    "Training",
-    "Lesson Planning",
-    "Tutoring",
-    "Classroom Management",
-    "Curriculum Development",
-    "Educational Technology",
-
-    // Science
-    "Scientific Research",
-    "Laboratory Skills",
-    "Data Collection",
-    "Scientific Writing",
-
-    // Engineering
-    "AutoCAD",
-    "CAD",
-    "Mechanical Design",
-    "Electrical Design",
-    "Civil Engineering",
-    "Engineering Design",
-    "Project Planning",
-
-    // Healthcare
-    "Healthcare",
-    "Patient Care",
-    "Medical Terminology",
-    "First Aid",
-    "Health Education",
-
-    // Languages
-    "English",
-    "Hindi",
-    "Marathi",
-    "French",
-    "German",
-    "Spanish",
-    "Japanese",
-
-    // Hospitality
-    "Hospitality",
-    "Hotel Management",
-    "Food Service",
-    "Front Office",
-    "Housekeeping",
-    "Event Management"
-
-];
-
-
-// ============================================================
-// SKILL LOOKUP
-// ============================================================
-
-function normalizeText(value) {
-
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
-
-}
-
-
-const VALID_SKILL_LOOKUP = new Map(
-    VALID_SKILLS.map(skill => [
-        normalizeText(skill),
-        skill
-    ])
-);
-
-
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-
-function parseArray(value) {
-
-    if (!value) {
-        return [];
-    }
-
-    if (Array.isArray(value)) {
-        return value;
-    }
-
-    try {
-
-        const parsed = JSON.parse(value);
-
-        if (Array.isArray(parsed)) {
-            return parsed;
-        }
-
-        return [];
-
-    } catch (error) {
-
-        return String(value)
-            .split(",")
-            .map(item => item.trim())
-            .filter(Boolean);
-
-    }
-
-}
-
-
-function parseProfileSkillObjects(skills) {
-
-    if (!skills) {
-        return [];
-    }
-
-    if (typeof skills === "string") {
-
-        try {
-
-            const parsed = JSON.parse(skills);
-
-            skills =
-                Array.isArray(parsed)
-                    ? parsed
-                    : typeof parsed === "string"
-                        ? [parsed]
-                        : [];
-
-        } catch (error) {
-
-            skills = skills
-                .split(",")
-                .map(item => item.trim())
-                .filter(Boolean);
-
-        }
-
-    }
-
-    if (!Array.isArray(skills)) {
-        return [];
-    }
-
-    return skills
-        .map(skill => {
-
-            if (typeof skill === "string") {
-
-                return {
-                    name: skill.trim(),
-                    level: "Beginner"
-                };
-
-            }
-
-            return {
-                name: String(
-                    skill.name ||
-                    skill.skill ||
-                    skill.title ||
-                    ""
-                ).trim(),
-
-                level:
-                    skill.level ||
-                    skill.value ||
-                    "Beginner"
-            };
-
-        })
-        .filter(skill => skill.name);
-
-}
-
-
-function getInvalidProfileSkills(skills) {
-
-    return [
-        ...new Set(
-
-            parseProfileSkillObjects(skills)
-
-                .filter(skill =>
-                    !VALID_SKILL_LOOKUP.has(
-                        normalizeText(skill.name)
-                    )
-                )
-
-                .map(skill => skill.name)
-
-        )
-    ];
-
-}
-
-
-function normalizeProfileSkills(skills) {
-
-    const skillObjects =
-        parseProfileSkillObjects(skills);
-
-    const finalSkills = [];
-    const seen = new Set();
-
-    skillObjects.forEach(skill => {
-
-        const key =
-            normalizeText(skill.name);
-
-        // Invalid skills such as "hh" are ignored.
-        if (!VALID_SKILL_LOOKUP.has(key)) {
-            return;
-        }
-
-        if (seen.has(key)) {
-            return;
-        }
-
-        seen.add(key);
-
-        const canonicalName =
-            VALID_SKILL_LOOKUP.get(key);
-
-        const allowedLevels = [
-            "Beginner",
-            "Intermediate",
-            "Advanced"
-        ];
-
-        const level =
-            allowedLevels.includes(skill.level)
-                ? skill.level
-                : "Beginner";
-
-        finalSkills.push({
-            name: canonicalName,
-            level: level
-        });
-
-    });
-
-    return finalSkills;
-
-}
-
-
-function qualificationRank(value) {
-
-    const qualification =
-        normalizeText(value);
-
-    if (
-        qualification.includes("master") ||
-        qualification.includes("postgraduate")
-    ) {
-        return 5;
-    }
-
-    if (
-        qualification.includes("bachelor") ||
-        qualification.includes("graduate")
-    ) {
-        return 4;
-    }
-
-    if (qualification.includes("diploma")) {
-        return 3;
-    }
-
-    if (qualification.includes("12")) {
-        return 2;
-    }
-
-    if (qualification.includes("10")) {
-        return 1;
-    }
-
-    return 0;
-
-}
-
-
-function requiredQualificationRank(value) {
-
-    const qualification =
-        normalizeText(value);
-
-    if (qualification.includes("master")) {
-        return 5;
-    }
-
-    if (qualification.includes("bachelor")) {
-        return 4;
-    }
-
-    if (qualification.includes("diploma")) {
-        return 3;
-    }
-
-    if (qualification.includes("12")) {
-        return 2;
-    }
-
-    if (qualification.includes("10")) {
-        return 1;
-    }
-
-    return 0;
-
-}
-
-
-function textMatches(userValue, careerValues) {
-
-    const userText =
-        normalizeText(userValue);
-
-    if (!userText) {
-        return false;
-    }
-
-    return careerValues.some(value => {
-
-        const careerText =
-            normalizeText(value);
-
-        return (
-            userText === careerText ||
-            userText.includes(careerText) ||
-            careerText.includes(userText)
-        );
-
-    });
-
-}
-
-
-function skillLevelMultiplier(level) {
-
-    if (level === "Advanced") {
-        return 1;
-    }
-
-    if (level === "Intermediate") {
-        return 0.8;
-    }
-
-    return 0.6;
-
-}
-
-
-// ============================================================
-// CAREER DATABASE
-// ============================================================
-
-function checkCareerDatabase() {
-
-    db.get(
-        `SELECT COUNT(*) AS count FROM careers`,
-        [],
-        (err, row) => {
-
-            if (err) {
-
-                console.error(
-                    "Career database check error:",
-                    err.message
-                );
-
-                return;
-            }
-
-            if (row.count > 0) {
-
-                console.log(
-                    "Career database already contains data."
-                );
-
-                return;
-            }
-
-            const statement = db.prepare(`
-                INSERT INTO careers (
-                    career_name,
-                    minimum_qualification,
-                    interests,
-                    fields,
-                    skills,
-                    required_skills,
-                    timeline,
-                    reason,
-                    roadmap,
-                    resources
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-
-            careers.forEach(career => {
-
-                statement.run(
-                    career.career_name,
+function updateCareerDatabase() {
+
+    careerData.forEach(career => {
+
+        db.get(
+            `
+            SELECT id
+            FROM careers
+            WHERE career_name = ?
+            `,
+            [career.career_name],
+            (err, existing) => {
+
+                if (err) {
+                    console.error(
+                        "Career check error:",
+                        err.message
+                    );
+
+                    return;
+                }
+
+                const values = [
                     career.minimum_qualification,
-                    JSON.stringify(career.interests),
-                    JSON.stringify(career.fields),
-                    JSON.stringify(career.skills),
-                    JSON.stringify(career.required_skills),
+                    JSON.stringify(
+                        career.interests
+                    ),
+                    JSON.stringify(
+                        career.fields
+                    ),
+                    JSON.stringify(
+                        career.skills
+                    ),
+                    JSON.stringify(
+                        career.required_skills
+                    ),
                     career.timeline,
                     career.reason,
-                    JSON.stringify(career.roadmap),
-                    JSON.stringify(career.resources)
-                );
+                    JSON.stringify(
+                        career.roadmap
+                    ),
+                    JSON.stringify(
+                        career.resources
+                    )
+                ];
 
-            });
 
-            statement.finalize();
+                if (existing) {
 
-            console.log(
-                "Career database populated."
-            );
+                    db.run(
+                        `
+                        UPDATE careers
+                        SET
+                            minimum_qualification = ?,
+                            interests = ?,
+                            fields = ?,
+                            skills = ?,
+                            required_skills = ?,
+                            timeline = ?,
+                            reason = ?,
+                            roadmap = ?,
+                            resources = ?
+                        WHERE career_name = ?
+                        `,
+                        [
+                            ...values,
+                            career.career_name
+                        ],
+                        updateErr => {
 
-        }
+                            if (updateErr) {
+                                console.error(
+                                    "Career update error:",
+                                    updateErr.message
+                                );
+                            }
+                        }
+                    );
+
+                } else {
+
+                    db.run(
+                        `
+                        INSERT INTO careers
+                        (
+                            career_name,
+                            minimum_qualification,
+                            interests,
+                            fields,
+                            skills,
+                            required_skills,
+                            timeline,
+                            reason,
+                            roadmap,
+                            resources
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `,
+                        [
+                            career.career_name,
+                            ...values
+                        ],
+                        insertErr => {
+
+                            if (insertErr) {
+                                console.error(
+                                    "Career insert error:",
+                                    insertErr.message
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        );
+    });
+
+    console.log(
+        "Career database populated."
     );
-
 }
 
 
 // ============================================================
-// HOME
+// HOME ROUTE
 // ============================================================
 
 app.get("/", (req, res) => {
-
     res.sendFile(
         path.join(__dirname, "index.html")
     );
-
 });
 
-
 // ============================================================
-// API TEST
-// ============================================================
-
-app.get("/api/test", (req, res) => {
-
-    res.json({
-        success: true,
-        message: "Career Guidance Portal API is working!"
-    });
-
-});
-
-
-// ============================================================
-// REGISTER
+// USER REGISTER
 // ============================================================
 
 app.post("/api/register", (req, res) => {
 
-    const fullName =
-        String(req.body.fullName || "").trim();
+    const {
+        fullName,
+        email,
+        password
+    } = req.body;
 
-    const email =
-        String(req.body.email || "")
-            .trim()
-            .toLowerCase();
-
-    const password =
-        String(req.body.password || "");
-
-    if (!fullName || !email || !password) {
-
+    if (
+        !fullName ||
+        !email ||
+        !password
+    ) {
         return res.status(400).json({
             success: false,
-            message: "All fields are required."
+            message:
+                "All fields are required."
         });
-
     }
+
+    // Basic password length validation
+    if (password.length < 6) {
+        return res.status(400).json({
+            success: false,
+            message:
+                "Password must be at least 6 characters long."
+        });
+    }
+
+    // Create a secure password hash and unique salt
+    const passwordData = hashUserPassword(password);
 
     db.run(
         `
-        INSERT INTO users (
+        INSERT INTO users
+        (
             full_name,
             email,
-            password
+            password,
+            password_salt
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         `,
         [
-            fullName,
-            email,
-            password
+            fullName.trim(),
+            email.trim().toLowerCase(),
+            passwordData.hash,
+            passwordData.salt
         ],
         function (err) {
 
             if (err) {
 
                 if (
-                    err.message &&
-                    err.message.includes("UNIQUE")
+                    err.message.includes(
+                        "UNIQUE"
+                    )
                 ) {
-
-                    return res.status(409).json({
+                    return res.status(400).json({
                         success: false,
                         message:
                             "Email already registered."
                     });
-
                 }
 
                 console.error(
@@ -1541,66 +2319,55 @@ app.post("/api/register", (req, res) => {
                     message:
                         "Registration failed."
                 });
-
             }
 
             res.json({
-
                 success: true,
-
                 message:
-                    "Registration successful!",
-
-                userId:
-                    this.lastID
-
+                    "Registration successful.",
+                userId: this.lastID
             });
-
         }
     );
-
 });
 
 
 // ============================================================
-// LOGIN
+// USER LOGIN
 // ============================================================
 
 app.post("/api/login", (req, res) => {
 
-    const email =
-        String(req.body.email || "")
-            .trim()
-            .toLowerCase();
-
-    const password =
-        String(req.body.password || "");
+    const {
+        email,
+        password
+    } = req.body;
 
     if (!email || !password) {
-
         return res.status(400).json({
             success: false,
             message:
                 "Email and password are required."
         });
-
     }
+
+    const cleanEmail = email.trim().toLowerCase();
 
     db.get(
         `
-        SELECT id, full_name, email
+        SELECT
+            id,
+            full_name,
+            email,
+            password,
+            password_salt
         FROM users
         WHERE email = ?
-        AND password = ?
         `,
-        [
-            email,
-            password
-        ],
+        [cleanEmail],
         (err, user) => {
 
             if (err) {
-
                 console.error(
                     "Login error:",
                     err.message
@@ -1611,147 +2378,153 @@ app.post("/api/login", (req, res) => {
                     message:
                         "Login failed."
                 });
-
             }
 
             if (!user) {
-
                 return res.status(401).json({
                     success: false,
                     message:
                         "Invalid email or password."
                 });
+            }
+
+            // ====================================================
+            // NEW SECURE PASSWORD
+            // ====================================================
+
+            if (user.password_salt) {
+
+                const passwordCorrect =
+                    verifyUserPassword(
+                        password,
+                        user.password,
+                        user.password_salt
+                    );
+
+                if (!passwordCorrect) {
+                    return res.status(401).json({
+                        success: false,
+                        message:
+                            "Invalid email or password."
+                    });
+                }
 
             }
 
+            // ====================================================
+            // OLD PASSWORD MIGRATION
+            // ====================================================
+            // Existing users were created before password
+            // hashing was added. If their password_salt is empty,
+            // check their old password and automatically upgrade it.
 
-            // Save logged-in user ID
-            // in a browser cookie.
+            else {
 
-            res.setHeader(
-                "Set-Cookie",
-                `career_user_id=${encodeURIComponent(user.id)}; Path=/; SameSite=Lax`
-            );
-
-
-            res.json({
-
-                success: true,
-
-                message:
-                    "Login successful!",
-
-                // Compatibility format
-                userId:
-                    user.id,
-
-                fullName:
-                    user.full_name,
-
-                email:
-                    user.email,
-
-                // Preferred format
-                user: {
-
-                    id:
-                        user.id,
-
-                    full_name:
-                        user.full_name,
-
-                    email:
-                        user.email
-
+                if (user.password !== password) {
+                    return res.status(401).json({
+                        success: false,
+                        message:
+                            "Invalid email or password."
+                    });
                 }
 
-            });
+                const passwordData =
+                    hashUserPassword(password);
 
-        }
-    );
+                db.run(
+                    `
+                    UPDATE users
+                    SET
+                        password = ?,
+                        password_salt = ?
+                    WHERE id = ?
+                    `,
+                    [
+                        passwordData.hash,
+                        passwordData.salt,
+                        user.id
+                    ],
+                    updateErr => {
 
-});
-
-
-// ============================================================
-// CURRENT USER SESSION
-// ============================================================
-
-app.get("/api/session", (req, res) => {
-
-    const userId =
-        getLoggedInUserId(req);
-
-    if (!userId) {
-
-        return res.status(401).json({
-            success: false,
-            user: null,
-            message:
-                "No active session. Please login again."
-        });
-
-    }
-
-    db.get(
-        `
-        SELECT id, full_name, email
-        FROM users
-        WHERE id = ?
-        `,
-        [userId],
-        (err, user) => {
-
-            if (err) {
-
-                console.error(
-                    "Session lookup error:",
-                    err.message
+                        if (updateErr) {
+                            console.error(
+                                "Password migration error:",
+                                updateErr.message
+                            );
+                        } else {
+                            console.log(
+                                `Password securely upgraded for user ID ${user.id}.`
+                            );
+                        }
+                    }
                 );
-
-                return res.status(500).json({
-                    success: false,
-                    user: null,
-                    message:
-                        "Could not verify session."
-                });
-
             }
 
-            if (!user) {
-
-                return res.status(404).json({
-                    success: false,
-                    user: null,
-                    message:
-                        "Session user not found."
-                });
-
-            }
+            // ====================================================
+            // LOGIN SUCCESS
+            // ====================================================
 
             res.json({
-
                 success: true,
-
+                message:
+                    "Login successful.",
                 user: {
-
-                    id:
-                        user.id,
-
-                    full_name:
-                        user.full_name,
-
-                    email:
-                        user.email
-
+                    id: user.id,
+                    full_name: user.full_name,
+                    email: user.email
                 }
-
             });
-
         }
     );
-
 });
+
+// ============================================================
+// GET USER SESSION
+// ============================================================
+
+app.get(
+    "/api/session/:userId",
+    (req, res) => {
+
+        const userId =
+            req.params.userId;
+
+        db.get(
+            `
+            SELECT
+                id,
+                full_name,
+                email
+            FROM users
+            WHERE id = ?
+            `,
+            [userId],
+            (err, user) => {
+
+                if (err) {
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to check session."
+                    });
+                }
+
+                if (!user) {
+                    return res.json({
+                        success: false,
+                        loggedIn: false
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    loggedIn: true,
+                    user: user
+                });
+            }
+        );
+    }
+);
 
 
 // ============================================================
@@ -1760,376 +2533,128 @@ app.get("/api/session", (req, res) => {
 
 app.post("/api/profile", (req, res) => {
 
-    console.log("");
-    console.log("======================================");
-    console.log("PROFILE SAVE REQUEST");
-    console.log("======================================");
-    console.log("Received body:", req.body);
-
-
-    const body =
-        req.body || {};
-
-
-    // Try ID from frontend
-
-    let userId =
-        body.userId ||
-        body.user_id ||
-        body.id ||
-        "";
-
-
-    // Try email from frontend
-
-    const userEmail =
-        body.userEmail ||
-        body.email ||
-        "";
-
-
-    // If frontend did not send ID,
-    // try login cookie.
+    const {
+        userId,
+        qualification,
+        field,
+        interest,
+        skills
+    } = req.body;
+    
+    console.log("PROFILE SKILLS RECEIVED:", skills);
 
     if (!userId) {
-
-        userId =
-            getLoggedInUserId(req);
-
-    }
-
-
-    console.log(
-        "User ID:",
-        userId
-    );
-
-    console.log(
-        "User Email:",
-        userEmail
-    );
-
-
-    const qualification =
-        String(
-            body.qualification || ""
-        ).trim();
-
-
-    const field =
-        String(
-            body.field || ""
-        ).trim();
-
-
-    const interest =
-        String(
-            body.interest || ""
-        ).trim();
-
-
-    const skills =
-        body.skills || [];
-
-
-    // --------------------------------------------------------
-    // CHECK USER
-    // --------------------------------------------------------
-
-    if (!userId && !userEmail) {
-
         return res.status(400).json({
-
             success: false,
-
             message:
-                "Please login again before saving your profile."
-
+                "User ID is required."
         });
-
     }
 
+    let skillsValue = [];
 
-    // --------------------------------------------------------
-    // SKILL VALIDATION
-    // --------------------------------------------------------
+    if (Array.isArray(skills)) {
+        skillsValue = skills;
+    }
 
-    const invalidSkills =
-        getInvalidProfileSkills(
-            skills
-        );
+    else if (
+        typeof skills === "string" &&
+        skills.trim() !== ""
+    ) {
+        try {
 
+            const parsed =
+                JSON.parse(skills);
 
-    const normalizedSkills =
-        normalizeProfileSkills(
-            skills
-        );
-
-
-    // --------------------------------------------------------
-    // SAVE PROFILE
-    // --------------------------------------------------------
-
-    function saveProfile(realUserId) {
-
-        db.run(
-            `
-            INSERT INTO profiles (
-                user_id,
-                qualification,
-                field,
-                interest,
-                skills
-            )
-            VALUES (?, ?, ?, ?, ?)
-
-            ON CONFLICT(user_id)
-            DO UPDATE SET
-                qualification = excluded.qualification,
-                field = excluded.field,
-                interest = excluded.interest,
-                skills = excluded.skills
-            `,
-            [
-                realUserId,
-                qualification,
-                field,
-                interest,
-                JSON.stringify(normalizedSkills)
-            ],
-            function (err) {
-
-                if (err) {
-
-                    console.error(
-                        "Profile save error:",
-                        err.message
-                    );
-
-                    return res.status(500).json({
-
-                        success: false,
-
-                        message:
-                            "Could not save profile."
-
-                    });
-
-                }
-
-
-                console.log(
-                    "Profile successfully saved for user:",
-                    realUserId
-                );
-
-
-                res.json({
-
-                    success: true,
-
-                    message:
-                        "Profile saved successfully!",
-
-                    userId:
-                        realUserId,
-
-                    skills:
-                        normalizedSkills,
-
-                    invalidSkills:
-                        invalidSkills
-
-                });
-
+            if (Array.isArray(parsed)) {
+                skillsValue = parsed;
+            } else {
+                skillsValue = [skills];
             }
-        );
 
+        } catch {
+            skillsValue = [skills];
+        }
     }
 
-
-    // --------------------------------------------------------
-    // FIND USER USING ID
-    // --------------------------------------------------------
-
-    if (userId) {
-
-        db.get(
-            `
-            SELECT id, full_name, email
-            FROM users
-            WHERE id = ?
-            `,
-            [userId],
-            (err, user) => {
-
-                if (err) {
-
-                    console.error(
-                        "User lookup error:",
-                        err.message
-                    );
-
-                    return res.status(500).json({
-
-                        success: false,
-
-                        message:
-                            "Could not verify user."
-
-                    });
-
-                }
-
-
-                if (user) {
-
-                    saveProfile(
-                        user.id
-                    );
-
-                    return;
-
-                }
-
-
-                // ID invalid.
-                // Try email if available.
-
-                if (userEmail) {
-
-                    db.get(
-                        `
-                        SELECT id, full_name, email
-                        FROM users
-                        WHERE email = ?
-                        `,
-                        [
-                            String(userEmail)
-                                .trim()
-                                .toLowerCase()
-                        ],
-                        (emailErr, emailUser) => {
-
-                            if (emailErr) {
-
-                                console.error(
-                                    "Email lookup error:",
-                                    emailErr.message
-                                );
-
-                                return res.status(500).json({
-
-                                    success: false,
-
-                                    message:
-                                        "Could not verify user."
-
-                                });
-
-                            }
-
-
-                            if (!emailUser) {
-
-                                return res.status(404).json({
-
-                                    success: false,
-
-                                    message:
-                                        "User not found. Please login again."
-
-                                });
-
-                            }
-
-
-                            saveProfile(
-                                emailUser.id
-                            );
-
-                        }
-                    );
-
-                    return;
-
-                }
-
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    message:
-                        "User not found. Please login again."
-
-                });
-
+    // Keep only valid skills when possible
+    skillsValue = skillsValue.filter(
+        skill => {
+            if (
+                typeof skill === "string"
+            ) {
+                return true;
             }
-        );
 
-        return;
+            if (
+                skill &&
+                typeof skill === "object"
+            ) {
+                return true;
+            }
 
-    }
+            return false;
+        }
+    );
 
+    const skillsJson =
+        JSON.stringify(skillsValue);
 
-    // --------------------------------------------------------
-    // FIND USER USING EMAIL
-    // --------------------------------------------------------
-
-    db.get(
+    db.run(
         `
-        SELECT id, full_name, email
-        FROM users
-        WHERE email = ?
+        INSERT INTO profiles
+        (
+            user_id,
+            qualification,
+            field,
+            interest,
+            skills
+        )
+        VALUES (?, ?, ?, ?, ?)
+
+        ON CONFLICT(user_id)
+        DO UPDATE SET
+            qualification =
+                excluded.qualification,
+
+            field =
+                excluded.field,
+
+            interest =
+                excluded.interest,
+
+            skills =
+                excluded.skills
         `,
         [
-            String(userEmail)
-                .trim()
-                .toLowerCase()
+            userId,
+            qualification || "",
+            field || "",
+            interest || "",
+            skillsJson
         ],
-        (err, user) => {
+        function (err) {
 
             if (err) {
-
                 console.error(
-                    "Email lookup error:",
+                    "Profile save error:",
                     err.message
                 );
 
                 return res.status(500).json({
-
                     success: false,
-
                     message:
-                        "Could not verify user."
-
+                        "Unable to save profile."
                 });
-
             }
 
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    message:
-                        "User not found. Please login again."
-
-                });
-
-            }
-
-
-            saveProfile(
-                user.id
-            );
-
+            res.json({
+                success: true,
+                message:
+                    "Profile saved successfully."
+            });
         }
     );
-
 });
 
 
@@ -2137,225 +2662,544 @@ app.post("/api/profile", (req, res) => {
 // GET PROFILE
 // ============================================================
 
-app.get("/api/profile/:userId", (req, res) => {
+app.get(
+    "/api/profile/:userId",
+    (req, res) => {
 
-    const userId =
-        req.params.userId;
+        const userId =
+            req.params.userId;
 
+        db.get(
+            `
+            SELECT
+                id,
+                user_id,
+                qualification,
+                field,
+                interest,
+                skills
+            FROM profiles
+            WHERE user_id = ?
+            `,
+            [userId],
+            (err, profile) => {
 
-    db.get(
-        `
-        SELECT
-            users.id,
-            users.full_name,
-            users.email,
-            profiles.qualification,
-            profiles.field,
-            profiles.interest,
-            profiles.skills
-
-        FROM users
-
-        LEFT JOIN profiles
-            ON users.id = profiles.user_id
-
-        WHERE users.id = ?
-        `,
-        [userId],
-        (err, row) => {
-
-            if (err) {
-
-                console.error(
-                    "Get profile error:",
-                    err.message
-                );
-
-                return res.status(500).json({
-
-                    success: false,
-
-                    message:
-                        "Could not load profile."
-
-                });
-
-            }
-
-
-            if (!row) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    message:
-                        "User not found."
-
-                });
-
-            }
-
-
-            const skillObjects =
-                normalizeProfileSkills(
-                    row.skills
-                );
-
-
-            const invalidSkills =
-                getInvalidProfileSkills(
-                    row.skills
-                );
-
-
-            res.json({
-
-                success: true,
-
-                user: {
-
-                    id:
-                        row.id,
-
-                    full_name:
-                        row.full_name,
-
-                    email:
-                        row.email
-
-                },
-
-                profile: {
-
-                    qualification:
-                        row.qualification || "",
-
-                    field:
-                        row.field || "",
-
-                    interest:
-                        row.interest || "",
-
-                    skills:
-                        skillObjects,
-
-                    invalidSkills:
-                        invalidSkills
-
+                if (err) {
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to load profile."
+                    });
                 }
 
-            });
+                if (!profile) {
+                    return res.json({
+                        success: true,
+                        profile: null
+                    });
+                }
 
-        }
-    );
+                let skills = [];
 
-});
+                try {
+                    skills =
+                        JSON.parse(
+                            profile.skills ||
+                            "[]"
+                        );
+                } catch {
+                    skills = [];
+                }
 
+                profile.skills =
+                    skills;
 
-// ============================================================
-// GET ALL CAREERS
-// ============================================================
-
-app.get("/api/careers", (req, res) => {
-
-    db.all(
-        `
-        SELECT *
-        FROM careers
-        ORDER BY id
-        `,
-        [],
-        (err, rows) => {
-
-            if (err) {
-
-                console.error(
-                    "Get careers error:",
-                    err.message
-                );
-
-                return res.status(500).json({
-
-                    success: false,
-
-                    message:
-                        "Could not load careers."
-
+                res.json({
+                    success: true,
+                    profile: profile
                 });
+            }
+        );
+    }
+);
 
+
+// ============================================================
+// GET CAREERS
+// ============================================================
+
+app.get(
+    "/api/careers",
+    (req, res) => {
+
+        db.all(
+            `
+            SELECT *
+            FROM careers
+            ORDER BY career_name COLLATE NOCASE ASC
+            `,
+            [],
+            (err, careers) => {
+
+                if (err) {
+                    console.error(
+                        "Career fetch error:",
+                        err.message
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to load careers."
+                    });
+                }
+
+                const formattedCareers =
+                    careers.map(
+                        career => ({
+                            ...career,
+
+                            interests:
+                                parseJSON(
+                                    career.interests
+                                ),
+
+                            fields:
+                                parseJSON(
+                                    career.fields
+                                ),
+
+                            skills:
+                                parseJSON(
+                                    career.skills
+                                ),
+
+                            required_skills:
+                                parseJSON(
+                                    career.required_skills
+                                ),
+
+                            roadmap:
+                                parseJSON(
+                                    career.roadmap
+                                ),
+
+                            resources:
+                                parseJSON(
+                                    career.resources
+                                )
+                        })
+                    );
+
+                res.json({
+                    success: true,
+                    careers:
+                        formattedCareers
+                });
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// CAREER RECOMMENDATION API
+// ============================================================
+
+function normalizeMatchText(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, " ");
+}
+
+function parseJsonArray(value) {
+    try {
+        const parsed = JSON.parse(value || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function getProfileSkillNames(skills) {
+
+    const skillList = parseJsonArray(skills);
+
+    return skillList
+        .map(skill => {
+
+            if (typeof skill === "string") {
+
+                return {
+                    name: skill,
+                    level: "Beginner"
+                };
             }
 
+            if (skill && typeof skill === "object") {
 
-            const formatted =
-                rows.map(career => ({
+                return {
+                    name: skill.name || "",
+                    level: skill.level || "Beginner"
+                };
+            }
 
-                    id:
-                        career.id,
+            return null;
+        })
+        .filter(skill => skill && skill.name);
+}
 
-                    career_name:
-                        career.career_name,
+function getQualificationLevel(value) {
+    const text = normalizeMatchText(value);
 
-                    minimum_qualification:
-                        career.minimum_qualification,
+    if (text.includes("master")) {
+        return 5;
+    }
 
-                    interests:
-                        parseArray(
-                            career.interests
-                        ),
+    if (text.includes("bachelor")) {
+        return 4;
+    }
 
-                    fields:
-                        parseArray(
-                            career.fields
-                        ),
+    if (text.includes("diploma")) {
+        return 3;
+    }
 
-                    skills:
-                        parseArray(
-                            career.skills
-                        ),
+    if (text.includes("12th") || text.includes("twelfth")) {
+        return 2;
+    }
 
-                    required_skills:
-                        parseArray(
-                            career.required_skills
-                        ),
+    if (text.includes("10th") || text.includes("tenth")) {
+        return 1;
+    }
 
-                    timeline:
-                        career.timeline,
+    return 0;
+}
 
-                    reason:
-                        career.reason,
+function calculateCareerMatch(profile, career) {
 
-                    roadmap:
-                        parseArray(
-                            career.roadmap
-                        ),
+    const userInterest =
+        normalizeMatchText(profile.interest);
 
-                    resources:
-                        parseArray(
-                            career.resources
-                        )
+    const userField =
+        normalizeMatchText(profile.field);
 
-                }));
+    const userQualification =
+        getQualificationLevel(profile.qualification);
 
 
-            res.json({
+    // --------------------------------------------------------
+    // USER SKILLS WITH PROFICIENCY LEVEL
+    // --------------------------------------------------------
 
-                success: true,
+    let profileSkills = [];
 
-                careers:
-                    formatted
+    try {
+        profileSkills = JSON.parse(profile.skills || "[]");
+    } catch (error) {
+        profileSkills = [];
+    }
 
-            });
+    const userSkills = profileSkills.map(skill => {
 
+        if (typeof skill === "string") {
+            return {
+                name: normalizeMatchText(skill),
+                level: "Beginner"
+            };
         }
-    );
 
-});
+        return {
+            name: normalizeMatchText(skill.name),
+            level: skill.level || "Beginner"
+        };
+    });
 
 
-// ============================================================
-// CAREER RECOMMENDATIONS
-// ============================================================
+    // --------------------------------------------------------
+    // CAREER DATA
+    // --------------------------------------------------------
+
+    const careerInterests =
+        parseJsonArray(career.interests)
+            .map(normalizeMatchText);
+
+    const careerFields =
+        parseJsonArray(career.fields)
+            .map(normalizeMatchText);
+
+    const requiredSkills =
+        parseJsonArray(career.required_skills);
+
+
+    // --------------------------------------------------------
+    // INTEREST SCORE - 40 POINTS
+    // --------------------------------------------------------
+
+    let interestScore = 0;
+
+    if (userInterest) {
+
+        const interestMatch =
+            careerInterests.some(
+                interest =>
+                    interest === userInterest ||
+                    interest.includes(userInterest) ||
+                    userInterest.includes(interest)
+            );
+
+        if (interestMatch) {
+            interestScore = 40;
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // SKILL SCORE - 30 POINTS
+    //
+    // Beginner     = 50% skill credit
+    // Intermediate = 75% skill credit
+    // Advanced     = 100% skill credit
+    // --------------------------------------------------------
+
+    let matchedSkills = [];
+
+    let skillPoints = 0;
+
+    requiredSkills.forEach(requiredSkill => {
+
+        const required =
+            normalizeMatchText(requiredSkill);
+
+        const matchingSkill =
+            userSkills.find(
+                userSkill =>
+                    userSkill.name === required ||
+                    userSkill.name.includes(required) ||
+                    required.includes(userSkill.name)
+            );
+
+        if (matchingSkill) {
+
+            matchedSkills.push(requiredSkill);
+
+            if (
+                matchingSkill.level
+                    .toLowerCase() === "advanced"
+            ) {
+                skillPoints += 1;
+
+            } else if (
+                matchingSkill.level
+                    .toLowerCase() === "intermediate"
+            ) {
+                skillPoints += 0.75;
+
+            } else {
+                skillPoints += 0.50;
+            }
+        }
+    });
+
+
+    let skillScore = 0;
+
+    if (requiredSkills.length > 0) {
+
+        skillScore = Math.round(
+            (
+                skillPoints /
+                requiredSkills.length
+            ) * 30
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // FIELD SCORE - 20 POINTS
+    // --------------------------------------------------------
+
+    let fieldScore = 0;
+
+    if (userField) {
+
+        const fieldMatch =
+            careerFields.some(
+                field =>
+                    field === userField ||
+                    field.includes(userField) ||
+                    userField.includes(field)
+            );
+
+        if (fieldMatch) {
+            fieldScore = 20;
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // QUALIFICATION SCORE - 10 POINTS
+    // --------------------------------------------------------
+
+    const minimumQualification =
+        getQualificationLevel(
+            career.minimum_qualification
+        );
+
+    let qualificationScore = 0;
+
+    if (
+        userQualification > 0 &&
+        userQualification >= minimumQualification
+    ) {
+        qualificationScore = 10;
+    }
+
+
+    // --------------------------------------------------------
+    // TOTAL SCORE
+    // --------------------------------------------------------
+
+    const matchPercentage =
+        interestScore +
+        skillScore +
+        fieldScore +
+        qualificationScore;
+
+
+    // --------------------------------------------------------
+    // MISSING SKILLS
+    // --------------------------------------------------------
+
+    const missingSkills =
+        requiredSkills.filter(
+            skill =>
+                !matchedSkills.some(
+                    matched =>
+                        normalizeMatchText(matched) ===
+                        normalizeMatchText(skill)
+                )
+        );
+
+
+    // --------------------------------------------------------
+    // SKILL GAPS
+    // --------------------------------------------------------
+
+    const skillGaps =
+        requiredSkills.map(skill => {
+
+            const required =
+                normalizeMatchText(skill);
+
+            const existingSkill =
+                userSkills.find(
+                    userSkill =>
+                        userSkill.name === required ||
+                        userSkill.name.includes(required) ||
+                        required.includes(userSkill.name)
+                );
+
+            let currentLevel = "Not Started";
+
+            if (existingSkill) {
+                currentLevel =
+                    existingSkill.level;
+            }
+
+            return {
+                name: skill,
+                currentLevel,
+                targetLevel: "Intermediate"
+            };
+        });
+
+
+    // --------------------------------------------------------
+    // RECOMMENDATION TYPE
+    // --------------------------------------------------------
+
+    let recommendationType;
+
+    if (matchPercentage >= 80) {
+
+        recommendationType =
+            "Excellent Match";
+
+    } else if (matchPercentage >= 65) {
+
+        recommendationType =
+            "Good Match";
+
+    } else if (matchPercentage >= 50) {
+
+        recommendationType =
+            "Potential Match";
+
+    } else {
+
+        recommendationType =
+            "Explore This Career";
+    }
+
+
+    // --------------------------------------------------------
+    // RETURN RESULT
+    // --------------------------------------------------------
+
+    return {
+
+        careerId:
+            career.id,
+
+        careerName:
+            career.career_name,
+
+        matchPercentage,
+
+        scoreBreakdown: {
+
+            interestScore,
+
+            skillScore,
+
+            fieldScore,
+
+            qualificationScore
+        },
+
+        minimumQualification:
+            career.minimum_qualification,
+
+        timeline:
+            career.timeline,
+
+        recommendationType,
+
+        reason:
+            career.reason,
+
+        requiredSkills,
+
+        matchedSkills,
+
+        missingSkills,
+
+        skillGaps,
+
+        roadmap:
+            parseJsonArray(career.roadmap),
+
+        resources:
+            parseJsonArray(career.resources)
+    };
+}
+
+
+// ------------------------------------------------------------
+// GET CAREER RECOMMENDATIONS
+// ------------------------------------------------------------
 
 app.get(
     "/api/recommendations/:userId",
@@ -2365,56 +3209,84 @@ app.get(
             req.params.userId;
 
 
+        // ----------------------------------------------------
+        // GET USER + PROFILE
+        // ----------------------------------------------------
+
         db.get(
             `
-            SELECT *
-            FROM profiles
-            WHERE user_id = ?
+            SELECT
+                u.id,
+                u.full_name,
+                u.email,
+                p.qualification,
+                p.field,
+                p.interest,
+                p.skills
+            FROM users u
+            LEFT JOIN profiles p
+                ON u.id = p.user_id
+            WHERE u.id = ?
             `,
             [userId],
-            (profileError, profile) => {
+            (userError, user) => {
 
-                if (profileError) {
+                if (userError) {
 
                     console.error(
-                        "Recommendation profile error:",
-                        profileError.message
+                        "Recommendation user error:",
+                        userError.message
                     );
 
                     return res.status(500).json({
-
                         success: false,
-
                         message:
-                            "Could not load profile."
-
+                            "Unable to load user profile."
                     });
-
                 }
 
 
-                if (!profile) {
+                if (!user) {
 
                     return res.status(404).json({
-
                         success: false,
-
                         message:
-                            "Profile not found."
-
+                            "User not found."
                     });
-
                 }
 
+
+                // ------------------------------------------------
+                // CHECK PROFILE
+                // ------------------------------------------------
+
+                if (
+                    !user.qualification &&
+                    !user.field &&
+                    !user.interest &&
+                    !user.skills
+                ) {
+
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "Please complete your career profile first."
+                    });
+                }
+
+
+                // ------------------------------------------------
+                // GET CAREERS
+                // ------------------------------------------------
 
                 db.all(
                     `
                     SELECT *
                     FROM careers
-                    ORDER BY id
+                    ORDER BY career_name COLLATE NOCASE ASC
                     `,
                     [],
-                    (careerError, careerRows) => {
+                    (careerError, careers) => {
 
                         if (careerError) {
 
@@ -2424,416 +3296,1003 @@ app.get(
                             );
 
                             return res.status(500).json({
-
                                 success: false,
-
                                 message:
-                                    "Could not load careers."
-
+                                    "Unable to load career database."
                             });
-
                         }
 
 
-                        const userSkills =
-                            normalizeProfileSkills(
-                                profile.skills
-                            );
-
-
-                        const invalidSkills =
-                            getInvalidProfileSkills(
-                                profile.skills
-                            );
-
-
-                        const userQualification =
-                            qualificationRank(
-                                profile.qualification
-                            );
-
-
-                        const results =
-                            careerRows.map(career => {
-
-                                const careerInterests =
-                                    parseArray(
-                                        career.interests
-                                    );
-
-
-                                const careerFields =
-                                    parseArray(
-                                        career.fields
-                                    );
-
-
-                                const requiredSkills =
-                                    parseArray(
-                                        career.required_skills
-                                    );
-
-
-                                // --------------------------------
-                                // INTEREST = 40%
-                                // --------------------------------
-
-                                let interestScore = 0;
-
-                                if (
-                                    textMatches(
-                                        profile.interest,
-                                        careerInterests
-                                    )
-                                ) {
-
-                                    interestScore = 40;
-
-                                }
-
-
-                                // --------------------------------
-                                // FIELD = 20%
-                                // --------------------------------
-
-                                let fieldScore = 0;
-
-                                if (
-                                    textMatches(
-                                        profile.field,
-                                        careerFields
-                                    )
-                                ) {
-
-                                    fieldScore = 20;
-
-                                }
-
-
-                                // --------------------------------
-                                // QUALIFICATION = 10%
-                                // --------------------------------
-
-                                let qualificationScore = 0;
-
-                                const requiredQualification =
-                                    requiredQualificationRank(
-                                        career.minimum_qualification
-                                    );
-
-
-                                if (
-                                    userQualification >=
-                                    requiredQualification
-                                ) {
-
-                                    qualificationScore = 10;
-
-                                } else if (
-                                    userQualification + 1 >=
-                                    requiredQualification
-                                ) {
-
-                                    qualificationScore = 5;
-
-                                }
-
-
-                                // --------------------------------
-                                // SKILLS = 30%
-                                // --------------------------------
-
-                                let skillScore = 0;
-
-                                if (
-                                    userSkills.length > 0 &&
-                                    requiredSkills.length > 0
-                                ) {
-
-                                    let matchedSkillPoints = 0;
-
-
-                                    requiredSkills.forEach(
-                                        requiredSkill => {
-
-                                            const matchingSkill =
-                                                userSkills.find(
-                                                    userSkill =>
-                                                        normalizeText(
-                                                            userSkill.name
-                                                        ) ===
-                                                        normalizeText(
-                                                            requiredSkill
-                                                        )
-                                                );
-
-
-                                            if (matchingSkill) {
-
-                                                matchedSkillPoints +=
-                                                    skillLevelMultiplier(
-                                                        matchingSkill.level
-                                                    );
-
-                                            }
-
-                                        }
-                                    );
-
-
-                                    skillScore =
-                                        Math.min(
-                                            30,
-                                            (
-                                                matchedSkillPoints /
-                                                requiredSkills.length
-                                            ) * 30
-                                        );
-
-                                }
-
-
-                                // --------------------------------
-                                // TOTAL SCORE
-                                // --------------------------------
-
-                                let totalScore =
-                                    interestScore +
-                                    skillScore +
-                                    fieldScore +
-                                    qualificationScore;
-
-
-                                totalScore =
-                                    Math.round(
-                                        Math.min(
-                                            100,
-                                            totalScore
-                                        )
-                                    );
-
-
-                                // --------------------------------
-                                // CONFIDENCE
-                                // --------------------------------
-
-                                let confidence =
-                                    "Low";
-
-
-                                if (totalScore >= 75) {
-
-                                    confidence =
-                                        "High";
-
-                                } else if (
-                                    totalScore >= 50
-                                ) {
-
-                                    confidence =
-                                        "Medium";
-
-                                }
-
-
-                                // --------------------------------
-                                // MATCH TYPE
-                                // --------------------------------
-
-                                let recommendationType =
-                                    "Explore";
-
-
-                                if (totalScore >= 75) {
-
-                                    recommendationType =
-                                        "Strong Match";
-
-                                } else if (
-                                    totalScore >= 55
-                                ) {
-
-                                    recommendationType =
-                                        "Good Match";
-
-                                } else if (
-                                    totalScore >= 35
-                                ) {
-
-                                    recommendationType =
-                                        "Potential Match";
-
-                                }
-
-
-                                // --------------------------------
-                                // MATCHED SKILLS
-                                // --------------------------------
-
-                                const matchedSkills =
-                                    userSkills
-
-                                        .filter(userSkill =>
-                                            requiredSkills.some(
-                                                requiredSkill =>
-                                                    normalizeText(
-                                                        requiredSkill
-                                                    ) ===
-                                                    normalizeText(
-                                                        userSkill.name
-                                                    )
-                                            )
-                                        )
-
-                                        .map(
-                                            skill =>
-                                                skill.name
-                                        );
-
-
-                                // --------------------------------
-                                // MISSING SKILLS
-                                // --------------------------------
-
-                                const missingSkills =
-                                    requiredSkills.filter(
-                                        requiredSkill =>
-                                            !userSkills.some(
-                                                userSkill =>
-                                                    normalizeText(
-                                                        requiredSkill
-                                                    ) ===
-                                                    normalizeText(
-                                                        userSkill.name
-                                                    )
-                                            )
-                                    );
-
-
-                                return {
-
-                                    career_name:
-                                        career.career_name,
-
-                                    score:
-                                        totalScore,
-
-                                    matchPercentage:
-                                        totalScore,
-
-                                    confidence:
-                                        confidence,
-
-                                    recommendationType:
-                                        recommendationType,
-
-                                    matchedSkills:
-                                        matchedSkills,
-
-                                    missingSkills:
-                                        missingSkills,
-
-                                    interestScore:
-                                        Math.round(
-                                            interestScore
-                                        ),
-
-                                    skillScore:
-                                        Math.round(
-                                            skillScore
-                                        ),
-
-                                    fieldScore:
-                                        Math.round(
-                                            fieldScore
-                                        ),
-
-                                    qualificationScore:
-                                        qualificationScore,
-
-                                    timeline:
-                                        career.timeline,
-
-                                    reason:
-                                        career.reason,
-
-                                    roadmap:
-                                        parseArray(
-                                            career.roadmap
-                                        ),
-
-                                    resources:
-                                        parseArray(
-                                            career.resources
-                                        ),
-
-                                    requiredSkills:
-                                        requiredSkills
-
-                                };
-
+                        if (!careers.length) {
+
+                            return res.status(404).json({
+                                success: false,
+                                message:
+                                    "No careers are available."
                             });
+                        }
 
 
-                        // Highest match first
+                        // ----------------------------------------
+                        // CALCULATE ALL CAREER MATCHES
+                        // ----------------------------------------
 
-                        results.sort(
-                            (a, b) =>
-                                b.score - a.score
-                        );
+                        const recommendations =
+                            careers
+                                .map(career =>
+                                    calculateCareerMatch(
+                                        user,
+                                        career
+                                    )
+                                )
+                                .sort(
+                                    (a, b) =>
+                                        b.matchPercentage -
+                                        a.matchPercentage
+                                );
 
+
+                        const bestRecommendation =
+                            recommendations[0];
+
+
+                        // ----------------------------------------
+                        // SEND RESULT TO CAREER.HTML
+                        // ----------------------------------------
 
                         res.json({
 
                             success: true,
 
                             profile: {
-
+                                id: user.id,
+                                full_name:
+                                    user.full_name,
+                                email:
+                                    user.email,
                                 qualification:
-                                    profile.qualification,
-
+                                    user.qualification,
                                 field:
-                                    profile.field,
-
+                                    user.field,
                                 interest:
-                                    profile.interest,
-
+                                    user.interest,
                                 skills:
-                                    userSkills
-
+                                    parseJsonArray(
+                                        user.skills
+                                    )
                             },
 
-                            invalidSkills:
-                                invalidSkills,
+                            recommendation:
+                                bestRecommendation,
 
                             recommendations:
-                                results
-
+                                recommendations.slice(0, 5)
                         });
-
                     }
                 );
-
             }
         );
-
     }
 );
 
 
 // ============================================================
-// SERVER START
+// ADMIN LOGIN
+// ============================================================
+
+app.post(
+    "/api/admin/login",
+    (req, res) => {
+
+        const {
+            email,
+            password
+        } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Email and password are required."
+            });
+        }
+
+        db.get(
+            `
+            SELECT
+                id,
+                full_name,
+                email,
+                password_hash,
+                password_salt
+            FROM admins
+            WHERE email = ?
+            `,
+            [
+                email.trim().toLowerCase()
+            ],
+            (err, admin) => {
+
+                if (err) {
+                    console.error(
+                        "Admin login error:",
+                        err.message
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Admin login failed."
+                    });
+                }
+
+                if (!admin) {
+                    return res.status(401).json({
+                        success: false,
+                        message:
+                            "Invalid admin email or password."
+                    });
+                }
+
+                const validPassword =
+                    verifyAdminPassword(
+                        password,
+                        admin.password_hash,
+                        admin.password_salt
+                    );
+
+                if (!validPassword) {
+                    return res.status(401).json({
+                        success: false,
+                        message:
+                            "Invalid admin email or password."
+                    });
+                }
+
+                const sessionToken =
+                    crypto.randomBytes(48)
+                        .toString("hex");
+
+                db.run(
+                    `
+                    INSERT INTO admin_sessions
+                    (
+                        admin_id,
+                        session_token
+                    )
+                    VALUES (?, ?)
+                    `,
+                    [
+                        admin.id,
+                        sessionToken
+                    ],
+                    function (sessionErr) {
+
+                        if (sessionErr) {
+                            console.error(
+                                "Admin session error:",
+                                sessionErr.message
+                            );
+
+                            return res.status(500).json({
+                                success: false,
+                                message:
+                                    "Unable to create admin session."
+                            });
+                        }
+
+                        res.cookie(
+                            "career_admin_session",
+                            sessionToken,
+                            {
+                                httpOnly: true,
+                                sameSite: "lax",
+                                path: "/"
+                            }
+                        );
+
+                        res.json({
+                            success: true,
+                            message:
+                                "Admin login successful.",
+
+                            admin: {
+                                id: admin.id,
+                                full_name:
+                                    admin.full_name,
+                                email:
+                                    admin.email
+                            }
+                        });
+                    }
+                );
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// ADMIN SESSION
+// ============================================================
+// IMPORTANT:
+// There must be ONLY ONE route with this exact path.
+// ============================================================
+
+app.get(
+    "/api/admin/session",
+    (req, res) => {
+
+        getAdminFromSession(
+            req,
+            (err, admin) => {
+
+                if (err) {
+                    console.error(
+                        "Admin session authentication error:",
+                        err.message
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        loggedIn: false,
+                        message:
+                            "Authentication error."
+                    });
+                }
+
+                if (!admin) {
+                    return res.json({
+                        success: true,
+                        loggedIn: false
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    loggedIn: true,
+                    admin: admin
+                });
+            }
+        );
+    }
+);
+// ============================================================
+// ADMIN LOGOUT
+// ============================================================
+
+app.post(
+    "/api/admin/logout",
+    (req, res) => {
+
+        const token =
+            getCookie(
+                req,
+                "career_admin_session"
+            );
+
+        if (!token) {
+
+            res.clearCookie(
+                "career_admin_session",
+                {
+                    httpOnly: true,
+                    sameSite: "lax",
+                    path: "/"
+                }
+            );
+
+            return res.json({
+                success: true,
+                message:
+                    "Admin logged out."
+            });
+        }
+
+        db.run(
+            `
+            DELETE FROM admin_sessions
+            WHERE session_token = ?
+            `,
+            [token],
+            err => {
+
+                if (err) {
+                    console.error(
+                        "Admin logout error:",
+                        err.message
+                    );
+                }
+
+                res.clearCookie(
+                    "career_admin_session",
+                    {
+                        httpOnly: true,
+                        sameSite: "lax",
+                        path: "/"
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    message:
+                        "Admin logged out successfully."
+                });
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// ADMIN PAGE PROTECTION
+// ============================================================
+
+function requireAdminPage(req, res, next) {
+
+    getAdminFromSession(
+        req,
+        (err, admin) => {
+
+            if (err) {
+
+                console.error(
+                    "Admin page authentication error:",
+                    err.message
+                );
+
+                return res.redirect(
+                    "/admin-login.html"
+                );
+            }
+
+            if (!admin) {
+
+                return res.redirect(
+                    "/admin-login.html"
+                );
+            }
+
+            req.admin = admin;
+
+            next();
+        }
+    );
+}
+
+
+// ============================================================
+// PROTECTED ADMIN PAGE
+// ============================================================
+
+app.get(
+    "/admin.html",
+    requireAdminPage,
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "admin.html"
+            )
+        );
+    }
+);
+
+
+// ============================================================
+// PROTECTED ADMIN CAREERS PAGE
+// ============================================================
+
+app.get(
+    "/admin-careers.html",
+    requireAdminPage,
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "admin-careers.html"
+            )
+        );
+    }
+);
+
+// ======================================================
+// ADMIN - VIEW REGISTERED USERS
+// ======================================================
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+
+    const sql = `
+        SELECT
+            users.id,
+            users.full_name,
+            users.email,
+            profiles.qualification,
+            profiles.field,
+            profiles.interest,
+            profiles.skills
+        FROM users
+        LEFT JOIN profiles
+            ON users.id = profiles.user_id
+        ORDER BY users.id DESC
+    `;
+
+    db.all(sql, [], (err, rows) => {
+
+        if (err) {
+
+            console.error("Admin users error:", err.message);
+
+            return res.status(500).json({
+                success: false,
+                message: "Unable to load users."
+            });
+
+        }
+
+        const users = rows.map(user => {
+
+            let skills = "";
+
+            if (user.skills) {
+
+                try {
+
+                    const parsedSkills = JSON.parse(user.skills);
+
+                    if (Array.isArray(parsedSkills)) {
+
+                        skills = parsedSkills
+                            .map(skill => {
+
+                                if (
+                                    typeof skill === "object" &&
+                                    skill !== null
+                                ) {
+
+                                    const name =
+                                        skill.name ||
+                                        skill.skill ||
+                                        "";
+
+                                    const level =
+                                        skill.level ||
+                                        skill.proficiency ||
+                                        "";
+
+                                    if (name && level) {
+                                        return `${name} (${level})`;
+                                    }
+
+                                    return name;
+                                }
+
+                                return skill;
+
+                            })
+                            .filter(Boolean)
+                            .join(", ");
+
+                    } else {
+
+                        skills = String(user.skills);
+
+                    }
+
+                } catch (error) {
+
+                    skills = String(user.skills);
+
+                }
+
+            }
+
+            return {
+                id: user.id,
+                full_name: user.full_name,
+                email: user.email,
+                qualification: user.qualification || "",
+                field: user.field || "",
+                interest: user.interest || "",
+                skills: skills
+            };
+
+        });
+
+        res.json({
+            success: true,
+            users: users
+        });
+
+    });
+
+});
+// ============================================================
+// ADMIN - GET CAREERS
+// ============================================================
+
+app.get(
+    "/api/admin/careers",
+    requireAdmin,
+    (req, res) => {
+
+        db.all(
+            `
+           SELECT *
+            FROM careers
+            ORDER BY career_name COLLATE NOCASE ASC
+            `,
+            [],
+            (err, careers) => {
+
+                if (err) {
+
+                    console.error(
+                        "Admin career fetch error:",
+                        err.message
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to load careers."
+                    });
+                }
+
+                const formattedCareers =
+                    careers.map(
+                        career => ({
+                            ...career,
+
+                            interests:
+                                parseJSON(
+                                    career.interests
+                                ),
+
+                            fields:
+                                parseJSON(
+                                    career.fields
+                                ),
+
+                            skills:
+                                parseJSON(
+                                    career.skills
+                                ),
+
+                            required_skills:
+                                parseJSON(
+                                    career.required_skills
+                                ),
+
+                            roadmap:
+                                parseJSON(
+                                    career.roadmap
+                                ),
+
+                            resources:
+                                parseJSON(
+                                    career.resources
+                                )
+                        })
+                    );
+
+                res.json({
+                    success: true,
+                    careers:
+                        formattedCareers
+                });
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// ADMIN - ADD CAREER
+// ============================================================
+
+app.post(
+    "/api/admin/careers",
+    requireAdmin,
+    (req, res) => {
+
+        const {
+            career_name,
+            minimum_qualification,
+            interests,
+            fields,
+            skills,
+            required_skills,
+            timeline,
+            reason,
+            roadmap,
+            resources
+        } = req.body;
+
+
+        if (
+            !career_name ||
+            !minimum_qualification
+        ) {
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Career name and minimum qualification are required."
+            });
+        }
+
+
+        db.get(
+            `
+            SELECT id
+            FROM careers
+            WHERE LOWER(career_name)
+                = LOWER(?)
+            `,
+            [career_name.trim()],
+            (checkErr, existing) => {
+
+                if (checkErr) {
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to check career."
+                    });
+                }
+
+
+                if (existing) {
+
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "Career already exists."
+                    });
+                }
+
+
+                db.run(
+                    `
+                    INSERT INTO careers
+                    (
+                        career_name,
+                        minimum_qualification,
+                        interests,
+                        fields,
+                        skills,
+                        required_skills,
+                        timeline,
+                        reason,
+                        roadmap,
+                        resources
+                    )
+                    VALUES
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `,
+                    [
+                        career_name.trim(),
+
+                        minimum_qualification,
+
+                        stringifyJSON(
+                            interests
+                        ),
+
+                        stringifyJSON(
+                            fields
+                        ),
+
+                        stringifyJSON(
+                            skills
+                        ),
+
+                        stringifyJSON(
+                            required_skills
+                        ),
+
+                        timeline || "",
+
+                        reason || "",
+
+                        stringifyJSON(
+                            roadmap
+                        ),
+
+                        stringifyJSON(
+                            resources
+                        )
+                    ],
+                    function (err) {
+
+                        if (err) {
+
+                            console.error(
+                                "Add career error:",
+                                err.message
+                            );
+
+                            return res.status(500).json({
+                                success: false,
+                                message:
+                                    "Unable to add career."
+                            });
+                        }
+
+
+                        res.json({
+                            success: true,
+                            message:
+                                "Career added successfully.",
+                            careerId:
+                                this.lastID
+                        });
+                    }
+                );
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// ADMIN - EDIT CAREER
+// ============================================================
+
+app.put(
+    "/api/admin/careers/:id",
+    requireAdmin,
+    (req, res) => {
+
+        const careerId =
+            req.params.id;
+
+
+        const {
+            career_name,
+            minimum_qualification,
+            interests,
+            fields,
+            skills,
+            required_skills,
+            timeline,
+            reason,
+            roadmap,
+            resources
+        } = req.body;
+
+
+        if (
+            !career_name ||
+            !minimum_qualification
+        ) {
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Career name and minimum qualification are required."
+            });
+        }
+
+
+        db.get(
+            `
+            SELECT id
+            FROM careers
+            WHERE LOWER(career_name)
+                = LOWER(?)
+            AND id != ?
+            `,
+            [
+                career_name.trim(),
+                careerId
+            ],
+            (checkErr, existing) => {
+
+                if (checkErr) {
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to check career."
+                    });
+                }
+
+
+                if (existing) {
+
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "Another career already has this name."
+                    });
+                }
+
+
+                db.run(
+                    `
+                    UPDATE careers
+                    SET
+                        career_name = ?,
+                        minimum_qualification = ?,
+                        interests = ?,
+                        fields = ?,
+                        skills = ?,
+                        required_skills = ?,
+                        timeline = ?,
+                        reason = ?,
+                        roadmap = ?,
+                        resources = ?
+                    WHERE id = ?
+                    `,
+                    [
+                        career_name.trim(),
+
+                        minimum_qualification,
+
+                        stringifyJSON(
+                            interests
+                        ),
+
+                        stringifyJSON(
+                            fields
+                        ),
+
+                        stringifyJSON(
+                            skills
+                        ),
+
+                        stringifyJSON(
+                            required_skills
+                        ),
+
+                        timeline || "",
+
+                        reason || "",
+
+                        stringifyJSON(
+                            roadmap
+                        ),
+
+                        stringifyJSON(
+                            resources
+                        ),
+
+                        careerId
+                    ],
+                    function (err) {
+
+                        if (err) {
+
+                            console.error(
+                                "Edit career error:",
+                                err.message
+                            );
+
+                            return res.status(500).json({
+                                success: false,
+                                message:
+                                    "Unable to update career."
+                            });
+                        }
+
+
+                        if (
+                            this.changes === 0
+                        ) {
+
+                            return res.status(404).json({
+                                success: false,
+                                message:
+                                    "Career not found."
+                            });
+                        }
+
+
+                        res.json({
+                            success: true,
+                            message:
+                                "Career updated successfully."
+                        });
+                    }
+                );
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// ADMIN - DELETE CAREER
+// ============================================================
+
+app.delete(
+    "/api/admin/careers/:id",
+    requireAdmin,
+    (req, res) => {
+
+        const careerId =
+            req.params.id;
+
+
+        db.run(
+            `
+            DELETE FROM careers
+            WHERE id = ?
+            `,
+            [careerId],
+            function (err) {
+
+                if (err) {
+
+                    console.error(
+                        "Delete career error:",
+                        err.message
+                    );
+
+                    return res.status(500).json({
+                        success: false,
+                        message:
+                            "Unable to delete career."
+                    });
+                }
+
+
+                if (
+                    this.changes === 0
+                ) {
+
+                    return res.status(404).json({
+                        success: false,
+                        message:
+                            "Career not found."
+                    });
+                }
+
+
+                res.json({
+                    success: true,
+                    message:
+                        "Career deleted successfully."
+                });
+            }
+        );
+    }
+);
+
+
+// ============================================================
+// PUBLIC STATIC FILES
+// ============================================================
+// IMPORTANT:
+// This must stay AFTER the protected admin page routes.
+
+app.use(
+    express.static(__dirname)
+);
+
+
+// ============================================================
+// START SERVER
 // ============================================================
 
 app.listen(
     PORT,
-    "0.0.0.0",
     () => {
 
         console.log("");
-        console.log("======================================");
-        console.log(" Career Guidance Portal Server");
-        console.log("======================================");
+        console.log(
+            "======================================"
+        );
+        console.log(
+            " Career Guidance Portal Server"
+        );
+        console.log(
+            "======================================"
+        );
 
         console.log(
             `Server running at http://localhost:${PORT}`
@@ -2841,5 +4300,18 @@ app.listen(
 
         console.log("");
 
+        console.log(
+            "Admin Login:"
+        );
+
+        console.log(
+            "Email: admin@careerguide.com"
+        );
+
+        console.log(
+            "Password: Admin@123"
+        );
+
+        console.log("");
     }
 );

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Login - CareerGuide</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo h1 {
+            color: #6c3fdc;
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .admin-icon {
+            width: 70px;
+            height: 70px;
+            background: #6c3fdc;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #6c3fdc;
+            box-shadow: 0 0 0 2px rgba(108, 63, 220, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #6c3fdc;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .login-btn:hover {
+            background: #5930bd;
+        }
+
+        .login-btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .message.error {
+            display: block;
+            background: #ffe5e5;
+            color: #c62828;
+            border: 1px solid #ffcaca;
+        }
+
+        .message.success {
+            display: block;
+            background: #e5f7e9;
+            color: #218838;
+            border: 1px solid #bde5c5;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #6c3fdc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .security-note {
+            margin-top: 25px;
+            padding: 12px;
+            background: #f7f5ff;
+            border-radius: 8px;
+            text-align: center;
+            color: #777;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-container">
+
+    <div class="login-box">
+
+        <div class="logo">
+
+            <div class="admin-icon">
+                🔐
+            </div>
+
+            <h1>CareerGuide</h1>
+
+            <p>Administrator Login</p>
+
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <form id="adminLoginForm">
+
+            <div class="form-group">
+
+                <label for="email">
+                    Admin Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter admin email"
+                    required
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter admin password"
+                    required
+                >
+
+            </div>
+
+            <button
+                type="submit"
+                class="login-btn"
+                id="loginButton"
+            >
+                Login as Admin
+            </button>
+
+        </form>
+
+        <a href="index.html" class="back-link">
+            ← Back to CareerGuide
+        </a>
+
+        <div class="security-note">
+            🔒 This area is restricted to authorized administrators.
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    const form = document.getElementById("adminLoginForm");
+    const message = document.getElementById("message");
+    const loginButton = document.getElementById("loginButton");
+
+
+    function showMessage(text, type) {
+
+        message.textContent = text;
+
+        message.className = "message " + type;
+
+    }
+
+
+    form.addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+
+        if (!email || !password) {
+
+            showMessage(
+                "Please enter your email and password.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        loginButton.disabled = true;
+        loginButton.textContent = "Logging in...";
+
+        message.className = "message";
+
+
+        try {
+
+            const response = await fetch("/api/admin/login", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                credentials: "include",
+
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+
+            });
+
+
+            const data = await response.json();
+
+
+            if (data.success) {
+
+                showMessage(
+                    "Login successful! Opening admin panel...",
+                    "success"
+                );
+
+
+                setTimeout(function() {
+
+                    window.location.href = "admin.html";
+
+                }, 700);
+
+            } else {
+
+                showMessage(
+                    data.message || "Invalid admin email or password.",
+                    "error"
+                );
+
+            }
+
+
+        } catch (error) {
+
+            console.error("Admin login error:", error);
+
+            showMessage(
+                "Cannot connect to the server. Please make sure the server is running.",
+                "error"
+            );
+
+        }
+
+
+        loginButton.disabled = false;
+        loginButton.textContent = "Login as Admin";
+
+    });
+
+</script>
+
+</body>
+</html>

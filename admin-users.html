@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Users - CareerGuide Admin</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            color: #222;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #6c3fdc;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: white;
+            color: #6c3fdc;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .header-btn:hover {
+            background: #eee8ff;
+        }
+
+        main {
+            flex: 1;
+            padding: 45px 25px;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: auto;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title h1 {
+            color: #1f1450;
+            margin-bottom: 10px;
+        }
+
+        .title p {
+            color: #555;
+        }
+
+        .message {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            color: #555;
+        }
+
+        .users-table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th {
+            background: #6c3fdc;
+            color: white;
+            padding: 14px;
+            text-align: left;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        tr:hover {
+            background: #faf8ff;
+        }
+
+        .profile-btn {
+            background: #6c3fdc;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .profile-btn:hover {
+            background: #5630b5;
+        }
+
+        .no-profile {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .count-box {
+            background: white;
+            padding: 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .count-box strong {
+            color: #6c3fdc;
+            font-size: 22px;
+        }
+
+        footer {
+            background: #2d1b50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 700px) {
+
+            header {
+                padding: 18px 20px;
+            }
+
+            header h2 {
+                font-size: 18px;
+            }
+
+            .header-buttons {
+                gap: 5px;
+            }
+
+            .header-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            main {
+                padding: 30px 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+
+        <h2>CareerGuide Admin</h2>
+
+        <div class="header-buttons">
+
+            <button class="header-btn" onclick="goDashboard()">
+                Dashboard
+            </button>
+
+            <button class="header-btn" onclick="logout()">
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- Main -->
+    <main>
+
+        <div class="container">
+
+            <div class="title">
+
+                <h1>Registered Users</h1>
+
+                <p>
+                    View users registered on the Career Guidance Portal
+                </p>
+
+            </div>
+
+
+            <div class="count-box">
+
+                Total Registered Users:
+
+                <strong id="userCount">0</strong>
+
+            </div>
+
+
+            <div id="message" class="message">
+                Loading users...
+            </div>
+
+
+            <div
+                id="usersContainer"
+                class="users-table-container"
+                style="display: none;"
+            >
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>ID</th>
+
+                            <th>Full Name</th>
+
+                            <th>Email</th>
+
+                            <th>Qualification</th>
+
+                            <th>Field / Stream</th>
+
+                            <th>Interest</th>
+
+                            <th>Skills</th>
+
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="usersTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer>
+
+        © 2026 Career Guidance Portal
+
+    </footer>
+
+
+    <script>
+
+        // Check admin session
+        async function checkAdminSession() {
+
+            try {
+
+                const response = await fetch(
+                    "/api/admin/session",
+                    {
+                        credentials: "include"
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!data.success || !data.loggedIn) {
+
+                    window.location.href =
+                        "/admin-login.html";
+
+                    return false;
+                }
+
+                return true;
+
+            } catch (error) {
+
+                console.error(
+                    "Session error:",
+                    error
+                );
+
+                window.location.href =
+                    "/admin-login.html";
+
+                return false;
+            }
+        }
+
+
+        // Load users
+        async function loadUsers() {
+
+            try {
+
+                const response = await fetch(
+                    "/api/admin/users",
+                    {
+                        credentials: "include"
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+
+                    throw new Error(
+                        data.message ||
+                        "Unable to load users."
+                    );
+                }
+
+                const users = data.users || [];
+
+                document.getElementById(
+                    "userCount"
+                ).textContent = users.length;
+
+
+                const tableBody =
+                    document.getElementById(
+                        "usersTableBody"
+                    );
+
+                tableBody.innerHTML = "";
+
+
+                if (users.length === 0) {
+
+                    document.getElementById(
+                        "message"
+                    ).style.display = "block";
+
+                    document.getElementById(
+                        "message"
+                    ).textContent =
+                        "No registered users found.";
+
+                    document.getElementById(
+                        "usersContainer"
+                    ).style.display = "none";
+
+                    return;
+                }
+
+
+                users.forEach(function(user) {
+
+                    const row =
+                        document.createElement("tr");
+
+
+                    const skills = user.skills
+                        ? user.skills
+                        : "Not provided";
+
+
+                    row.innerHTML = `
+
+                        <td>
+                            ${escapeHTML(user.id)}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(user.full_name)}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(user.email)}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                user.qualification ||
+                                "Not provided"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                user.field ||
+                                "Not provided"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                user.interest ||
+                                "Not provided"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(skills)}
+                        </td>
+
+                        <td>
+
+                            <button
+                                class="profile-btn"
+                                onclick="viewProfile(${Number(user.id)})"
+                            >
+                                👁️ View Profile
+                            </button>
+
+                        </td>
+
+                    `;
+
+
+                    tableBody.appendChild(row);
+
+                });
+
+
+                document.getElementById(
+                    "message"
+                ).style.display = "none";
+
+
+                document.getElementById(
+                    "usersContainer"
+                ).style.display = "block";
+
+
+            } catch (error) {
+
+                console.error(
+                    "Load users error:",
+                    error
+                );
+
+                document.getElementById(
+                    "message"
+                ).style.display = "block";
+
+                document.getElementById(
+                    "message"
+                ).textContent =
+                    error.message;
+
+                document.getElementById(
+                    "usersContainer"
+                ).style.display = "none";
+            }
+        }
+
+
+        // View individual profile
+        function viewProfile(userId) {
+
+            window.location.href =
+                "/admin-user-profile.html?id=" +
+                encodeURIComponent(userId);
+
+        }
+
+
+        // Prevent HTML injection
+        function escapeHTML(value) {
+
+            const div =
+                document.createElement("div");
+
+            div.textContent =
+                value == null
+                    ? ""
+                    : String(value);
+
+            return div.innerHTML;
+        }
+
+
+        // Go to dashboard
+        function goDashboard() {
+
+            window.location.href =
+                "/admin.html";
+        }
+
+
+        // Logout
+        async function logout() {
+
+            try {
+
+                const response = await fetch(
+                    "/api/admin/logout",
+                    {
+                        method: "POST",
+                        credentials: "include"
+                    }
+                );
+
+                const data =
+                    await response.json();
+
+                if (data.success) {
+
+                    window.location.href =
+                        "/admin-login.html";
+
+                } else {
+
+                    alert("Logout failed.");
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Logout error:",
+                    error
+                );
+
+                alert(
+                    "Unable to logout. Please try again."
+                );
+            }
+        }
+
+
+        // Start page
+        async function startPage() {
+
+            const loggedIn =
+                await checkAdminSession();
+
+            if (loggedIn) {
+
+                await loadUsers();
+            }
+        }
+
+
+        startPage();
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>User Profile - CareerGuide Admin</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            color: #222;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #6c3fdc;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            font-size: 23px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: white;
+            color: #6c3fdc;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .header-btn:hover {
+            background: #eee8ff;
+        }
+
+        main {
+            flex: 1;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .page-title {
+            margin-bottom: 25px;
+        }
+
+        .page-title h1 {
+            color: #1f1450;
+            margin-bottom: 8px;
+        }
+
+        .page-title p {
+            color: #666;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 14px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 25px;
+        }
+
+        .avatar {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: #6c3fdc;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .profile-header h2 {
+            color: #1f1450;
+            margin-bottom: 6px;
+        }
+
+        .profile-header p {
+            color: #666;
+        }
+
+        .section-title {
+            color: #6c3fdc;
+            margin-bottom: 18px;
+            font-size: 20px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .detail-box {
+            background: #faf8ff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .detail-label {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .detail-value {
+            font-weight: bold;
+            color: #2d1b50;
+        }
+
+        .skills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .skill-tag {
+            background: #eee8ff;
+            color: #5b31b5;
+            padding: 9px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .recommendation {
+            background: #f7f3ff;
+            border-left: 5px solid #6c3fdc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .recommendation h3 {
+            color: #6c3fdc;
+            margin-bottom: 10px;
+        }
+
+        .recommendation p {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .loading {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .error {
+            background: #fff0f0;
+            color: #a33;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .back-button {
+            background: #6c3fdc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #5630b5;
+        }
+
+        footer {
+            background: #2d1b50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 700px) {
+
+            header {
+                padding: 18px 20px;
+            }
+
+            header h2 {
+                font-size: 18px;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .profile-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <h2>CareerGuide Admin</h2>
+
+    <div class="header-buttons">
+
+        <button class="header-btn" onclick="goDashboard()">
+            Dashboard
+        </button>
+
+        <button class="header-btn" onclick="logout()">
+            Logout
+        </button>
+
+    </div>
+
+</header>
+
+
+<main>
+
+    <div class="container">
+
+        <button class="back-button" onclick="goUsers()">
+            ← Back to Users
+        </button>
+
+        <div class="page-title">
+
+            <h1>👤 User Profile</h1>
+
+            <p>
+                Detailed information about the registered user
+            </p>
+
+        </div>
+
+
+        <div id="loading" class="loading">
+            Loading user profile...
+        </div>
+
+
+        <div id="profileContent" style="display:none;">
+
+
+            <!-- USER INFORMATION -->
+            <div class="profile-card">
+
+                <div class="profile-header">
+
+                    <div class="avatar" id="avatar">
+                        U
+                    </div>
+
+                    <div>
+
+                        <h2 id="userName">
+                            User
+                        </h2>
+
+                        <p id="userEmail">
+                            user@example.com
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <h3 class="section-title">
+                    🎓 Education & Personal Information
+                </h3>
+
+
+                <div class="details-grid">
+
+                    <div class="detail-box">
+
+                        <div class="detail-label">
+                            User ID
+                        </div>
+
+                        <div class="detail-value" id="userId">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <div class="detail-label">
+                            Qualification
+                        </div>
+
+                        <div class="detail-value" id="qualification">
+                            Not provided
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <div class="detail-label">
+                            Field / Stream
+                        </div>
+
+                        <div class="detail-value" id="field">
+                            Not provided
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail-box">
+
+                        <div class="detail-label">
+                            Career Interest
+                        </div>
+
+                        <div class="detail-value" id="interest">
+                            Not provided
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SKILLS -->
+            <div class="profile-card">
+
+                <h3 class="section-title">
+                    🛠️ Skills & Proficiency
+                </h3>
+
+                <div
+                    id="skillsContainer"
+                    class="skills-container"
+                >
+                </div>
+
+            </div>
+
+
+            <!-- CAREER RECOMMENDATION -->
+            <div class="profile-card">
+
+                <h3 class="section-title">
+                    🎯 Career Recommendation
+                </h3>
+
+                <div class="recommendation">
+
+                    <h3 id="careerName">
+                        Career recommendation
+                    </h3>
+
+                    <p id="careerMessage">
+                        Career recommendation information will appear here.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <div
+            id="errorMessage"
+            class="error"
+            style="display:none;"
+        >
+        </div>
+
+    </div>
+
+</main>
+
+
+<footer>
+    © 2026 Career Guidance Portal
+</footer>
+
+
+<script>
+
+    // Check admin session
+    async function checkAdminSession() {
+
+        try {
+
+            const response = await fetch(
+                "/api/admin/session",
+                {
+                    credentials: "include"
+                }
+            );
+
+            const data = await response.json();
+
+            if (!data.success || !data.loggedIn) {
+
+                window.location.href =
+                    "/admin-login.html";
+
+                return false;
+            }
+
+            return true;
+
+        } catch (error) {
+
+            console.error(error);
+
+            window.location.href =
+                "/admin-login.html";
+
+            return false;
+        }
+    }
+
+
+    // Get user ID from URL
+    function getUserId() {
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        return params.get("id");
+    }
+
+
+    // Load user
+    async function loadUserProfile() {
+
+        const userId = getUserId();
+
+        if (!userId) {
+
+            showError(
+                "No user ID was provided."
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/api/admin/users",
+                {
+                    credentials: "include"
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok || !data.success) {
+
+                throw new Error(
+                    data.message ||
+                    "Unable to load user information."
+                );
+            }
+
+
+            const users =
+                data.users || [];
+
+
+            const user =
+                users.find(
+                    u => String(u.id) === String(userId)
+                );
+
+
+            if (!user) {
+
+                throw new Error(
+                    "User not found."
+                );
+            }
+
+
+            displayUser(user);
+
+
+        } catch (error) {
+
+            console.error(
+                "User profile error:",
+                error
+            );
+
+            showError(
+                error.message
+            );
+        }
+    }
+
+
+    // Display user information
+    function displayUser(user) {
+
+        document.getElementById(
+            "userName"
+        ).textContent =
+            user.full_name || "User";
+
+
+        document.getElementById(
+            "userEmail"
+        ).textContent =
+            user.email || "No email";
+
+
+        document.getElementById(
+            "userId"
+        ).textContent =
+            user.id || "-";
+
+
+        document.getElementById(
+            "qualification"
+        ).textContent =
+            user.qualification ||
+            "Not provided";
+
+
+        document.getElementById(
+            "field"
+        ).textContent =
+            user.field ||
+            "Not provided";
+
+
+        document.getElementById(
+            "interest"
+        ).textContent =
+            user.interest ||
+            "Not provided";
+
+
+        // Avatar
+        const name =
+            user.full_name || "User";
+
+        document.getElementById(
+            "avatar"
+        ).textContent =
+            name.charAt(0).toUpperCase();
+
+
+        // Skills
+        displaySkills(
+            user.skills
+        );
+
+
+        // Recommendation
+        displayRecommendation(
+            user
+        );
+
+
+        document.getElementById(
+            "loading"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "profileContent"
+        ).style.display =
+            "block";
+    }
+
+
+    // Display skills
+    function displaySkills(skills) {
+
+        const container =
+            document.getElementById(
+                "skillsContainer"
+            );
+
+        container.innerHTML = "";
+
+
+        if (!skills) {
+
+            container.innerHTML =
+                `<span class="skill-tag">
+                    No skills provided
+                </span>`;
+
+            return;
+        }
+
+
+        const skillList =
+            String(skills)
+                .split(",")
+                .map(skill => skill.trim())
+                .filter(Boolean);
+
+
+        if (skillList.length === 0) {
+
+            container.innerHTML =
+                `<span class="skill-tag">
+                    No skills provided
+                </span>`;
+
+            return;
+        }
+
+
+        skillList.forEach(
+            function(skill) {
+
+                const tag =
+                    document.createElement("span");
+
+                tag.className =
+                    "skill-tag";
+
+                tag.textContent =
+                    skill;
+
+                container.appendChild(tag);
+            }
+        );
+    }
+
+
+    // Display basic recommendation
+    function displayRecommendation(user) {
+
+        const careerName =
+            document.getElementById(
+                "careerName"
+            );
+
+        const careerMessage =
+            document.getElementById(
+                "careerMessage"
+            );
+
+
+        if (
+            !user.qualification &&
+            !user.field &&
+            !user.interest &&
+            !user.skills
+        ) {
+
+            careerName.textContent =
+                "Profile not completed";
+
+            careerMessage.textContent =
+                "This user has not completed their career profile yet.";
+
+            return;
+        }
+
+
+        careerName.textContent =
+            "Career profile available";
+
+
+        careerMessage.textContent =
+            "The user's qualification, field, interests and skills have been saved in the Career Guidance Portal. Their detailed career recommendation can be viewed from the user's career guidance page.";
+    }
+
+
+    // Show error
+    function showError(message) {
+
+        document.getElementById(
+            "loading"
+        ).style.display =
+            "none";
+
+
+        const errorBox =
+            document.getElementById(
+                "errorMessage"
+            );
+
+        errorBox.textContent =
+            message;
+
+
+        errorBox.style.display =
+            "block";
+    }
+
+
+    // Back to users
+    function goUsers() {
+
+        window.location.href =
+            "/admin-users.html";
+    }
+
+
+    // Dashboard
+    function goDashboard() {
+
+        window.location.href =
+            "/admin.html";
+    }
+
+
+    // Logout
+    async function logout() {
+
+        try {
+
+            await fetch(
+                "/api/admin/logout",
+                {
+                    method: "POST",
+                    credentials: "include"
+                }
+            );
+
+        } catch (error) {
+
+            console.error(error);
+        }
+
+
+        window.location.href =
+            "/admin-login.html";
+    }
+
+
+    // Start page
+    async function startPage() {
+
+        const loggedIn =
+            await checkAdminSession();
+
+
+        if (loggedIn) {
+
+            await loadUserProfile();
+
+        }
+
+    }
+
+
+    startPage();
+
+</script>
+
+</body>
+</html>

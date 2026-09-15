@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Panel - CareerGuide</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            color: #222;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #6c3fdc;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        .logout-btn {
+            background: white;
+            color: #6c3fdc;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #eee8ff;
+        }
+
+        main {
+            flex: 1;
+            padding: 55px 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title h1 {
+            color: #1f1450;
+            margin-bottom: 10px;
+        }
+
+        .title p {
+            color: #555;
+            font-size: 17px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 35px 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .card .icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .card h2 {
+            color: #3d227d;
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: #555;
+            line-height: 1.5;
+            min-height: 48px;
+            margin-bottom: 25px;
+        }
+
+        .card button {
+            background: #6c3fdc;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .card button:hover {
+            background: #5630b5;
+        }
+
+        footer {
+            background: #2d1b50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 800px) {
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 18px 20px;
+            }
+
+            main {
+                padding: 35px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+
+        <h2>CareerGuide Admin</h2>
+
+        <button class="logout-btn" onclick="logout()">
+            Logout
+        </button>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main>
+
+        <div class="container">
+
+            <div class="title">
+
+                <h1>Admin Dashboard</h1>
+
+                <p>
+                    Manage your Career Guidance Portal
+                </p>
+
+            </div>
+
+
+            <div class="cards">
+
+                <!-- CAREERS -->
+                <div class="card">
+
+                    <div class="icon">
+                        💼
+                    </div>
+
+                    <h2>
+                        Careers
+                    </h2>
+
+                    <p>
+                        Add, edit and delete career information.
+                    </p>
+
+                    <button onclick="openCareers()">
+                        Manage Careers
+                    </button>
+
+                </div>
+
+
+                <!-- USERS -->
+                <div class="card">
+
+                    <div class="icon">
+                        👥
+                    </div>
+
+                    <h2>
+                        Users
+                    </h2>
+
+                    <p>
+                        View registered users and their profiles.
+                    </p>
+
+                    <button onclick="viewUsers()">
+                        View Users
+                    </button>
+
+                </div>
+
+
+                <!-- DASHBOARD -->
+                <div class="card">
+
+                    <div class="icon">
+                        📊
+                    </div>
+
+                    <h2>
+                        Dashboard
+                    </h2>
+
+                    <p>
+                        View statistics and information about the portal.
+                    </p>
+
+                    <button onclick="viewDetails()">
+                        View Details
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer>
+
+        © 2026 Career Guidance Portal
+
+    </footer>
+
+
+    <script>
+
+        /* ==========================================
+           CHECK ADMIN SESSION
+        ========================================== */
+
+        async function checkAdminSession() {
+
+            try {
+
+                const response =
+                    await fetch("/api/admin/session", {
+                        credentials: "include"
+                    });
+
+                const data =
+                    await response.json();
+
+                if (!data.success || !data.loggedIn) {
+
+                    window.location.href =
+                        "/admin-login.html";
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Session check error:",
+                    error
+                );
+
+                window.location.href =
+                    "/admin-login.html";
+
+            }
+
+        }
+
+
+        /* ==========================================
+           OPEN CAREER MANAGEMENT
+        ========================================== */
+
+        function openCareers() {
+
+            window.location.href =
+                "/admin-careers.html";
+
+        }
+
+
+        /* ==========================================
+           OPEN USER MANAGEMENT
+        ========================================== */
+
+        function viewUsers() {
+
+            window.location.href =
+                "/admin-users.html";
+
+        }
+
+
+        /* ==========================================
+           OPEN REAL DASHBOARD
+        ========================================== */
+
+        function viewDetails() {
+
+            window.location.href =
+                "/admin-dashboard.html";
+
+        }
+
+
+        /* ==========================================
+           ADMIN LOGOUT
+        ========================================== */
+
+        async function logout() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/api/admin/logout",
+                        {
+                            method: "POST",
+                            credentials: "include"
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (data.success) {
+
+                    window.location.href =
+                        "/admin-login.html";
+
+                } else {
+
+                    alert(
+                        "Logout failed. Please try again."
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Logout error:",
+                    error
+                );
+
+                alert(
+                    "Unable to logout. Please try again."
+                );
+
+            }
+
+        }
+
+
+        /* ==========================================
+           START SESSION CHECK
+        ========================================== */
+
+        checkAdminSession();
+
+    </script>
+
+</body>
+</html>

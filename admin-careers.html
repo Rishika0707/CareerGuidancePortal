@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<title>Manage Careers - CareerGuide Admin</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f3ff;
+        color: #2d1b50;
+    }
+
+    .navbar {
+        background: #6c3fdc;
+        color: white;
+        padding: 18px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .nav-buttons button {
+        background: white;
+        color: #6c3fdc;
+        border: none;
+        padding: 10px 18px;
+        margin-left: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 35px auto;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .add-section {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+    }
+
+    .add-section h2 {
+        color: #6c3fdc;
+        margin-top: 0;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group.full {
+        grid-column: 1 / -1;
+    }
+
+    label {
+        font-weight: bold;
+        margin-bottom: 6px;
+    }
+
+    input,
+    textarea {
+        padding: 11px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: Arial, sans-serif;
+    }
+
+    textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .button {
+        margin-top: 18px;
+        padding: 12px 22px;
+        background: #6c3fdc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .button:hover {
+        background: #5630b5;
+    }
+
+    .career-section {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .career-section h2 {
+        color: #6c3fdc;
+        margin-top: 0;
+    }
+
+    .career-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 18px;
+    }
+
+    .career-card h3 {
+        color: #6c3fdc;
+        margin-top: 0;
+    }
+
+    .career-card p {
+        margin: 8px 0;
+        line-height: 1.5;
+    }
+
+    .edit-button {
+        background: #6c3fdc;
+        color: white;
+        border: none;
+        padding: 9px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 8px;
+    }
+
+    .delete-button {
+        background: #d32f2f;
+        color: white;
+        border: none;
+        padding: 9px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .message {
+        margin-top: 15px;
+        font-weight: bold;
+    }
+
+    .empty {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+    }
+
+    footer {
+        margin-top: 50px;
+        background: #2d1b50;
+        color: white;
+        text-align: center;
+        padding: 20px;
+    }
+
+    @media (max-width: 700px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full {
+            grid-column: auto;
+        }
+
+        .navbar {
+            padding: 15px 20px;
+        }
+
+        .container {
+            padding: 10px;
+        }
+    }
+</style>
+```
+
+</head>
+
+<body>
+
+```
+<div class="navbar">
+
+    <div class="logo">
+        CareerGuide Admin
+    </div>
+
+    <div class="nav-buttons">
+
+        <button onclick="goDashboard()">
+            Dashboard
+        </button>
+
+        <button onclick="logout()">
+            Logout
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="container">
+
+    <h1>Manage Careers</h1>
+
+    <p class="subtitle">
+        Add, edit and delete career information
+    </p>
+
+
+    <!-- ADD / EDIT CAREER -->
+
+    <div class="add-section">
+
+        <h2 id="formTitle">
+            ➕ Add New Career
+        </h2>
+
+        <form id="careerForm">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <label>
+                        Career Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="careerName"
+                        placeholder="Example: Web Developer"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Minimum Qualification
+                    </label>
+
+                    <input
+                        type="text"
+                        id="minimumQualification"
+                        placeholder="Example: Bachelor"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Interests
+                    </label>
+
+                    <input
+                        type="text"
+                        id="interests"
+                        placeholder="Example: Programming, Technology"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Fields / Streams
+                    </label>
+
+                    <input
+                        type="text"
+                        id="fields"
+                        placeholder="Example: Computer Science, IT"
+                    >
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <label>
+                        Required Skills
+                    </label>
+
+                    <textarea
+                        id="requiredSkills"
+                        placeholder="Example: HTML, CSS, JavaScript, Git"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Timeline
+                    </label>
+
+                    <input
+                        type="text"
+                        id="timeline"
+                        placeholder="Example: 6-12 months"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Reason
+                    </label>
+
+                    <textarea
+                        id="reason"
+                        placeholder="Why is this career suitable?"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <label>
+                        Roadmap
+                    </label>
+
+                    <textarea
+                        id="roadmap"
+                        placeholder="Step 1, Step 2, Step 3..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <label>
+                        Learning Resources
+                    </label>
+
+                    <textarea
+                        id="resources"
+                        placeholder="Courses, tutorials, books..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="button"
+                id="submitButton"
+            >
+                Add Career
+            </button>
+
+
+            <button
+                type="button"
+                class="button"
+                id="cancelButton"
+                onclick="cancelEdit()"
+                style="display:none; background:#777;"
+            >
+                Cancel Edit
+            </button>
+
+
+            <div
+                id="message"
+                class="message"
+            ></div>
+
+        </form>
+
+    </div>
+
+
+    <!-- CAREER LIST -->
+
+    <div class="career-section">
+
+        <h2>
+            📋 Existing Careers
+        </h2>
+
+        <div id="careerList">
+
+            <div class="empty">
+                Loading careers...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<footer>
+
+    © 2026 Career Guidance Portal
+
+</footer>
+
+
+<script>
+
+    let editingCareerId = null;
+
+
+    // Load careers
+
+    async function loadCareers() {
+
+        try {
+
+            const response =
+                await fetch("/api/careers");
+
+            const data =
+                await response.json();
+
+            const careerList =
+                document.getElementById("careerList");
+
+            if (
+                !data.success ||
+                !data.careers ||
+                data.careers.length === 0
+            ) {
+
+                careerList.innerHTML =
+                    '<div class="empty">No careers found.</div>';
+
+                return;
+
+            }
+
+
+            careerList.innerHTML = "";
+
+
+            data.careers.forEach(
+                career => {
+
+                    const card =
+                        document.createElement("div");
+
+                    card.className =
+                        "career-card";
+
+
+                    const skills =
+                        Array.isArray(
+                            career.required_skills
+                        )
+                            ? career.required_skills.join(", ")
+                            : career.required_skills || "Not specified";
+
+
+                    card.innerHTML = `
+
+                        <h3>
+                            ${escapeHtml(career.career_name)}
+                        </h3>
+
+                        <p>
+                            <strong>Minimum Qualification:</strong>
+                            ${escapeHtml(career.minimum_qualification || "Not specified")}
+                        </p>
+
+                        <p>
+                            <strong>Interests:</strong>
+                            ${escapeHtml(formatArray(career.interests))}
+                        </p>
+
+                        <p>
+                            <strong>Fields:</strong>
+                            ${escapeHtml(formatArray(career.fields))}
+                        </p>
+
+                        <p>
+                            <strong>Required Skills:</strong>
+                            ${escapeHtml(skills)}
+                        </p>
+
+                        <p>
+                            <strong>Timeline:</strong>
+                            ${escapeHtml(career.timeline || "Not specified")}
+                        </p>
+
+                        <button
+                            class="edit-button"
+                            onclick="editCareer(${career.id})"
+                        >
+                            Edit
+                        </button>
+
+                        <button
+                            class="delete-button"
+                            onclick="deleteCareer(${career.id})"
+                        >
+                            Delete
+                        </button>
+
+                    `;
+
+
+                    careerList.appendChild(card);
+
+                }
+            );
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            document.getElementById("careerList").innerHTML =
+                '<div class="empty">Unable to load careers.</div>';
+
+        }
+
+    }
+
+
+    // Format arrays
+
+    function formatArray(value) {
+
+        if (Array.isArray(value)) {
+
+            return value.join(", ");
+
+        }
+
+        return value || "Not specified";
+
+    }
+
+
+    // Escape HTML
+
+    function escapeHtml(value) {
+
+        const div =
+            document.createElement("div");
+
+        div.textContent =
+            value;
+
+        return div.innerHTML;
+
+    }
+
+
+    // Add / Edit career
+
+    document
+        .getElementById("careerForm")
+        .addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+
+                const careerData = {
+
+                    career_name:
+                        document.getElementById("careerName").value.trim(),
+
+                    minimum_qualification:
+                        document.getElementById("minimumQualification").value.trim(),
+
+                    interests:
+                        document.getElementById("interests").value.trim(),
+
+                    fields:
+                        document.getElementById("fields").value.trim(),
+
+                    required_skills:
+                        document.getElementById("requiredSkills").value.trim(),
+
+                    timeline:
+                        document.getElementById("timeline").value.trim(),
+
+                    reason:
+                        document.getElementById("reason").value.trim(),
+
+                    roadmap:
+                        document.getElementById("roadmap").value.trim(),
+
+                    resources:
+                        document.getElementById("resources").value.trim()
+
+                };
+
+
+                let url =
+                    "/api/admin/careers";
+
+                let method =
+                    "POST";
+
+
+                if (editingCareerId !== null) {
+
+                    url =
+                        `/api/admin/careers/${editingCareerId}`;
+
+                    method =
+                        "PUT";
+
+                }
+
+
+                try {
+
+                    const response =
+                        await fetch(
+                            url,
+                            {
+                                method: method,
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+                                body:
+                                    JSON.stringify(careerData)
+                            }
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    const message =
+                        document.getElementById("message");
+
+
+                    if (!response.ok || !data.success) {
+
+                        message.style.color =
+                            "#d32f2f";
+
+                        message.textContent =
+                            data.message ||
+                            "Something went wrong.";
+
+                        return;
+
+                    }
+
+
+                    message.style.color =
+                        "green";
+
+                    message.textContent =
+                        editingCareerId === null
+                            ? "Career added successfully!"
+                            : "Career updated successfully!";
+
+
+                    document
+                        .getElementById("careerForm")
+                        .reset();
+
+
+                    editingCareerId =
+                        null;
+
+
+                    document
+                        .getElementById("formTitle")
+                        .textContent =
+                        "➕ Add New Career";
+
+
+                    document
+                        .getElementById("submitButton")
+                        .textContent =
+                        "Add Career";
+
+
+                    document
+                        .getElementById("cancelButton")
+                        .style.display =
+                        "none";
+
+
+                    loadCareers();
+
+                }
+                catch (error) {
+
+                    console.error(error);
+
+                    document
+                        .getElementById("message")
+                        .style.color =
+                        "#d32f2f";
+
+                    document
+                        .getElementById("message")
+                        .textContent =
+                        "Server error. Please try again.";
+
+                }
+
+            }
+        );
+
+
+    // Edit career
+
+    async function editCareer(id) {
+
+        try {
+
+            const response =
+                await fetch("/api/careers");
+
+            const data =
+                await response.json();
+
+
+            const career =
+                data.careers.find(
+                    item => item.id === id
+                );
+
+
+            if (!career) {
+
+                alert("Career not found.");
+
+                return;
+
+            }
+
+
+            editingCareerId =
+                id;
+
+
+            document.getElementById("careerName").value =
+                career.career_name || "";
+
+
+            document.getElementById("minimumQualification").value =
+                career.minimum_qualification || "";
+
+
+            document.getElementById("interests").value =
+                formatArray(career.interests);
+
+
+            document.getElementById("fields").value =
+                formatArray(career.fields);
+
+
+            document.getElementById("requiredSkills").value =
+                formatArray(career.required_skills);
+
+
+            document.getElementById("timeline").value =
+                career.timeline || "";
+
+
+            document.getElementById("reason").value =
+                career.reason || "";
+
+
+            document.getElementById("roadmap").value =
+                formatArray(career.roadmap);
+
+
+            document.getElementById("resources").value =
+                formatArray(career.resources);
+
+
+            document.getElementById("formTitle").textContent =
+                "✏️ Edit Career";
+
+
+            document.getElementById("submitButton").textContent =
+                "Update Career";
+
+
+            document.getElementById("cancelButton").style.display =
+                "inline-block";
+
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            alert("Unable to edit career.");
+
+        }
+
+    }
+
+
+    // Cancel edit
+
+    function cancelEdit() {
+
+        editingCareerId =
+            null;
+
+
+        document
+            .getElementById("careerForm")
+            .reset();
+
+
+        document
+            .getElementById("formTitle")
+            .textContent =
+            "➕ Add New Career";
+
+
+        document
+            .getElementById("submitButton")
+            .textContent =
+            "Add Career";
+
+
+        document
+            .getElementById("cancelButton")
+            .style.display =
+            "none";
+
+
+        document
+            .getElementById("message")
+            .textContent =
+            "";
+
+    }
+
+
+    // Delete career
+
+    async function deleteCareer(id) {
+
+        const confirmDelete =
+            confirm(
+                "Are you sure you want to delete this career?"
+            );
+
+
+        if (!confirmDelete) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `/api/admin/careers/${id}`,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok || !data.success) {
+
+                alert(
+                    data.message ||
+                    "Unable to delete career."
+                );
+
+                return;
+
+            }
+
+
+            alert(
+                "Career deleted successfully."
+            );
+
+
+            loadCareers();
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Server error. Please try again."
+            );
+
+        }
+
+    }
+
+
+    function goDashboard() {
+
+        window.location.href =
+            "admin.html";
+
+    }
+
+
+    function logout() {
+
+        window.location.href =
+            "index.html";
+
+    }
+
+
+    // Load careers when page opens
+
+    loadCareers();
+
+</script>
+```
+
+</body>
+</html>

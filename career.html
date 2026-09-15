@@ -1,19 +1,12 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
-    <title>CareerGuide - Recommendations</title>
+    <title>Career Recommendations - CareerGuide</title>
 
     <style>
-
         * {
             box-sizing: border-box;
         }
@@ -21,1797 +14,2067 @@
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
-            background: #f5f7fb;
-            color: #1f2937;
+            background: #f5f3ff;
+            color: #222;
         }
 
-        header {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 18px 7%;
+        /* =========================
+           NAVBAR
+        ========================= */
+
+        nav {
+            background: #6c3fdc;
+            color: white;
+            padding: 15px 40px;
+
             display: flex;
             justify-content: space-between;
             align-items: center;
+
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .logo {
-            font-size: 25px;
-            font-weight: 800;
-            color: #2563eb;
+            font-size: 24px;
+            font-weight: bold;
         }
 
-        nav a {
+        .nav-links {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: white;
             text-decoration: none;
-            color: #374151;
-            margin-left: 24px;
-            font-weight: 600;
+            font-size: 15px;
         }
 
-        nav a:hover {
-            color: #2563eb;
+        .nav-links a:hover {
+            text-decoration: underline;
         }
+
+        .logout-btn {
+            background: white;
+            color: #6c3fdc;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .logout-btn:hover {
+            background: #eee8ff;
+        }
+
+        /* =========================
+           MAIN CONTAINER
+        ========================= */
 
         .container {
+            width: 92%;
             max-width: 1100px;
-            margin: 45px auto;
-            padding: 0 20px;
+            margin: 35px auto;
         }
 
         .page-title {
             text-align: center;
-            margin-bottom: 35px;
-        }
-
-        .page-title h1 {
-            font-size: 36px;
-            margin-bottom: 10px;
-        }
-
-        .page-title p {
-            color: #6b7280;
-            max-width: 700px;
-            margin: auto;
-            line-height: 1.6;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-            font-size: 18px;
-            color: #6b7280;
-        }
-
-        .error-box {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            display: none;
-            margin-bottom: 25px;
-        }
-
-        .hero-career {
-            background: #ffffff;
-            border-radius: 22px;
-            padding: 40px;
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.07);
             margin-bottom: 30px;
         }
 
-        .recommended-label {
-            color: #2563eb;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 13px;
+        .page-title h1 {
+            color: #4d269c;
+            margin-bottom: 8px;
         }
 
-        .career-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
+        .page-title p {
+            color: #666;
         }
 
-        .career-title {
-            font-size: 38px;
-            margin: 10px 0;
-        }
+        /* =========================
+           LOADING
+        ========================= */
 
-        .match {
-            background: #dcfce7;
-            color: #166534;
-            padding: 12px 18px;
-            border-radius: 30px;
-            font-weight: 800;
-            font-size: 20px;
-            white-space: nowrap;
-        }
-
-        .confidence {
-            display: inline-block;
-            margin-top: 8px;
-            background: #eff6ff;
-            color: #1d4ed8;
-            padding: 7px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .explanation {
-            color: #4b5563;
-            font-size: 17px;
-            line-height: 1.7;
-            margin-top: 15px;
-        }
-
-        .section {
+        .loading {
+            text-align: center;
             background: white;
-            border-radius: 18px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 7px 25px rgba(0, 0, 0, 0.05);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
         }
 
-        .section h2 {
+        .loading h2 {
+            color: #6c3fdc;
+        }
+
+        /* =========================
+           ERROR
+        ========================= */
+
+        .error-box {
+            display: none;
+            background: #fff0f0;
+            border: 1px solid #e5a0a0;
+            color: #9b2226;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .error-box button {
+            margin-top: 10px;
+            padding: 9px 15px;
+            border: none;
+            background: #6c3fdc;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* =========================
+           PROFILE CARD
+        ========================= */
+
+        .profile-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .profile-card h2 {
+            color: #4d269c;
             margin-top: 0;
-            font-size: 23px;
         }
 
         .profile-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
         }
 
         .profile-item {
-            background: #f8fafc;
-            padding: 18px;
-            border-radius: 12px;
-        }
-
-        .profile-item span {
-            display: block;
-            color: #6b7280;
-            font-size: 13px;
-            margin-bottom: 6px;
+            background: #f5f3ff;
+            padding: 15px;
+            border-radius: 8px;
         }
 
         .profile-item strong {
-            font-size: 16px;
+            display: block;
+            color: #6c3fdc;
+            margin-bottom: 6px;
         }
 
-        .career-list {
+        /* =========================
+           BEST RECOMMENDATION
+        ========================= */
+
+        .recommendation-card {
+            background: white;
+            border-radius: 14px;
+            padding: 30px;
+            margin-bottom: 30px;
+
+            border-left: 6px solid #6c3fdc;
+
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .recommendation-header h2 {
+            color: #4d269c;
+            margin: 0;
+        }
+
+        .match-badge {
+            background: #6c3fdc;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .recommendation-type {
+            display: inline-block;
+            margin-top: 12px;
+            background: #eee8ff;
+            color: #4d269c;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .career-description {
+            line-height: 1.6;
+            color: #555;
+            margin-top: 20px;
+        }
+
+        /* =========================
+           SCORE BREAKDOWN
+        ========================= */
+
+        .section-title {
+            color: #4d269c;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .score-box {
+            background: #f5f3ff;
+            padding: 18px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .score-box strong {
+            display: block;
+            color: #6c3fdc;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .score-box span {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        /* =========================
+           SKILLS
+        ========================= */
+
+        .skills-section {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: 20px;
+            margin-top: 15px;
         }
 
-        .career-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
+        .skill-box {
+            background: #f8f7ff;
+            border-radius: 10px;
             padding: 20px;
-            transition: 0.2s;
         }
 
-        .career-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .career-card h3 {
-            margin: 0 0 12px;
-            font-size: 19px;
-        }
-
-        .career-score {
-            font-weight: 800;
-            color: #2563eb;
-        }
-
-        .career-type {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 5px 10px;
-            background: #f3f4f6;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #4b5563;
-        }
-
-        .score-bar {
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 20px;
-            margin-top: 12px;
-            overflow: hidden;
-        }
-
-        .score-fill {
-            height: 100%;
-            background: #2563eb;
-            border-radius: 20px;
+        .skill-box h4 {
+            margin-top: 0;
+            color: #4d269c;
         }
 
         .skill-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 0;
-            list-style: none;
+            padding-left: 20px;
+            line-height: 1.8;
         }
 
         .skill-list li {
-            background: #eff6ff;
-            color: #1d4ed8;
-            padding: 10px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
+            color: #444;
         }
 
-        .skill-list li.empty {
-            background: #f3f4f6;
-            color: #6b7280;
+        .empty-message {
+            color: #777;
+            font-style: italic;
         }
 
-        .skill-list li.gap {
-            background: #fff7ed;
-            color: #c2410c;
+        /* =========================
+           SKILL IMPROVEMENT
+        ========================= */
+
+        .improvement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
         }
+
+        .improvement-table th {
+            background: #6c3fdc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .improvement-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .improvement-table tr:hover {
+            background: #f8f5ff;
+        }
+
+        /* =========================
+           ROADMAP
+        ========================= */
 
         .roadmap {
-            display: grid;
-            gap: 15px;
+            margin-top: 15px;
         }
 
         .roadmap-item {
             display: flex;
             gap: 15px;
             align-items: flex-start;
+
+            background: #f8f7ff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
         }
 
-        .step-number {
+        .roadmap-number {
             min-width: 35px;
             height: 35px;
-            border-radius: 50%;
-            background: #2563eb;
-            color: white;
+
             display: flex;
-            align-items: center;
             justify-content: center;
-            font-weight: 800;
+            align-items: center;
+
+            background: #6c3fdc;
+            color: white;
+
+            border-radius: 50%;
+            font-weight: bold;
         }
 
-        .step-text {
-            padding-top: 7px;
+        .roadmap-text {
             line-height: 1.5;
         }
 
-        .path {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            line-height: 2;
-            font-weight: 600;
-        }
+        /* =========================
+           RESOURCES
+        ========================= */
 
-        .timeline {
-            font-size: 25px;
-            font-weight: 800;
-            color: #2563eb;
-        }
-
-        .resource-list {
+        .resources-list {
             padding-left: 20px;
-            line-height: 2;
+            line-height: 1.9;
         }
 
-        .resource-list li {
+        .resources-list li {
             margin-bottom: 5px;
         }
 
-        .note {
-            background: #fff7ed;
-            border-left: 4px solid #f97316;
-            padding: 18px;
-            border-radius: 8px;
-            line-height: 1.6;
-            color: #7c2d12;
-        }
+        /* =========================
+           OTHER CAREERS
+        ========================= */
 
-        .button {
-            display: inline-block;
-            text-decoration: none;
-            background: #2563eb;
-            color: white;
-            padding: 13px 22px;
-            border-radius: 10px;
-            font-weight: 700;
-            margin-top: 15px;
-        }
-
-        .button:hover {
-            background: #1d4ed8;
-        }
-
-        .breakdown-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-        }
-
-        .breakdown-card {
-            background: #f8fafc;
-            padding: 20px;
+        .other-careers-section {
+            background: white;
             border-radius: 14px;
-            text-align: center;
+            padding: 30px;
+            margin-top: 30px;
+
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
         }
 
-        .breakdown-card span {
-            display: block;
-            color: #6b7280;
-            font-size: 13px;
-            margin-bottom: 8px;
+        .other-careers-section h2 {
+            color: #4d269c;
+            margin-top: 0;
         }
 
-        .breakdown-card strong {
-            font-size: 25px;
-            color: #2563eb;
+        .career-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
         }
 
-        .status-box {
+        .career-option {
+            background: #f8f7ff;
             padding: 18px;
-            border-radius: 12px;
-            line-height: 1.6;
+            border-radius: 10px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            border: 1px solid #e5defa;
         }
 
-        .status-warning {
-            background: #fff7ed;
-            color: #9a3412;
-            border-left: 4px solid #f97316;
+        .career-option:hover {
+            border-color: #6c3fdc;
+            background: #f1edff;
         }
 
-        .status-success {
-            background: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #22c55e;
+        .career-name {
+            font-weight: bold;
+            color: #4d269c;
         }
+
+        .career-score {
+            background: #6c3fdc;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 13px;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
 
         footer {
+            background: #2d1b50;
+            color: white;
             text-align: center;
-            padding: 35px;
-            color: #6b7280;
-            font-size: 14px;
+            padding: 25px;
+            margin-top: 50px;
         }
 
-        @media (max-width: 750px) {
+        /* =========================
+           RESPONSIVE
+        ========================= */
 
-            header {
+        @media (max-width: 800px) {
+
+            nav {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                gap: 12px;
+            }
+
+            .profile-grid,
+            .score-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skills-section {
+                grid-template-columns: 1fr;
+            }
+
+            .career-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 550px) {
+
+            .container {
+                width: 94%;
+            }
+
+            nav {
                 flex-direction: column;
-                gap: 15px;
+                gap: 12px;
             }
 
-            nav a {
-                margin: 0 7px;
+            .profile-grid,
+            .score-grid {
+                grid-template-columns: 1fr;
             }
 
-            .career-title-row {
+            .recommendation-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .career-title {
-                font-size: 30px;
-            }
-
-            .profile-grid,
-            .career-list,
-            .breakdown-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-career,
-            .section {
-                padding: 25px;
+            .improvement-table {
+                font-size: 13px;
             }
         }
-
     </style>
-
 </head>
-
 
 <body>
 
-<header>
-
-    <div class="logo">
-        CareerGuide
-    </div>
+    <!-- =========================
+         NAVBAR
+    ========================= -->
 
     <nav>
 
-        <a href="index.html">Home</a>
+        <div class="logo">
+            CareerGuide
+        </div>
 
-        <a href="about.html">About</a>
+        <div class="nav-links">
 
-        <a href="profile.html">Profile</a>
+            <a href="index.html">
+                Home
+            </a>
 
-        <a href="#" onclick="logout()">Logout</a>
+            <a href="about.html">
+                About
+            </a>
+
+            <button
+                class="logout-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
+
+        </div>
 
     </nav>
 
-</header>
 
+    <!-- =========================
+         MAIN
+    ========================= -->
 
-<main class="container">
+    <div class="container">
 
-    <div class="page-title">
+        <div class="page-title">
 
-        <h1>
-            Your Personalized Career Guidance
-        </h1>
+            <h1>
+                Career Recommendations
+            </h1>
 
-        <p>
-            Your recommendations are calculated dynamically using
-            your education, academic field, interests and current skills.
-        </p>
-
-    </div>
-
-
-    <div id="loading" class="loading">
-        Analyzing your career profile...
-    </div>
-
-
-    <div id="errorBox" class="error-box"></div>
-
-
-    <div id="content" style="display:none;">
-
-
-        <!-- RECOMMENDED CAREER -->
-
-        <section class="hero-career">
-
-            <div class="recommended-label">
-                🚀 Recommended Career
-            </div>
-
-            <div class="career-title-row">
-
-                <div>
-
-                    <h2
-                        id="recommendedCareer"
-                        class="career-title">
-                    </h2>
-
-                    <div
-                        id="confidence"
-                        class="confidence">
-                    </div>
-
-                </div>
-
-                <div
-                    id="recommendedScore"
-                    class="match">
-                </div>
-
-            </div>
-
-            <p
-                id="recommendedExplanation"
-                class="explanation">
+            <p>
+                Based on your education, field, interests and skills
             </p>
 
-        </section>
+        </div>
 
 
-        <!-- SCORE BREAKDOWN -->
+        <!-- LOADING -->
 
-        <section class="section">
-
-            <h2>
-                📊 Recommendation Score
-            </h2>
-
-            <div
-                id="scoreBreakdown"
-                class="breakdown-grid">
-            </div>
-
-        </section>
-
-
-        <!-- LONG TERM GOAL -->
-
-        <section class="section">
+        <div
+            id="loading"
+            class="loading"
+        >
 
             <h2>
-                🎯 Your Long-Term Career Goal
+                Loading your career recommendations...
             </h2>
 
-            <h3
-                id="goalCareer"
-                style="font-size:25px;">
-            </h3>
-
-            <div id="goalSteps"></div>
-
-        </section>
-
-
-        <!-- QUALIFICATION -->
-
-        <section class="section">
-
-            <h2>
-                🎓 Qualification Status
-            </h2>
-
-            <div
-                id="qualificationStatus"
-                class="status-box">
-            </div>
-
-        </section>
-
-
-        <!-- OTHER CAREERS -->
-
-        <section class="section">
-
-            <h2>
-                ⭐ Other Suitable Careers
-            </h2>
-
-            <div
-                id="otherCareers"
-                class="career-list">
-            </div>
-
-        </section>
-
-
-        <!-- WHY -->
-
-        <section class="section">
-
-            <h2>
-                💡 Why We Recommended This Career
-            </h2>
-
-            <p
-                id="whyText"
-                class="explanation">
+            <p>
+                Please wait while we analyze your profile.
             </p>
 
-        </section>
+        </div>
 
 
-        <!-- PROFILE -->
+        <!-- ERROR -->
 
-        <section class="section">
+        <div
+            id="errorBox"
+            class="error-box"
+        >
 
-            <h2>
-                👤 Your Profile
-            </h2>
+            <strong>
+                Unable to load career recommendations.
+            </strong>
 
-            <div
-                id="profileGrid"
-                class="profile-grid">
-            </div>
+            <div id="errorMessage"></div>
 
-        </section>
+            <button onclick="goToProfile()">
+                Complete Career Profile
+            </button>
 
+        </div>
 
-        <!-- CURRENT SKILLS -->
 
-        <section class="section">
+        <!-- CONTENT -->
 
-            <h2>
-                🧠 Your Current Skills
-            </h2>
+        <div id="careerContent" style="display:none;">
 
-            <ul
-                id="currentSkills"
-                class="skill-list">
-            </ul>
 
-        </section>
+            <!-- =========================
+                 PROFILE
+            ========================= -->
 
+            <div class="profile-card">
 
-        <!-- MATCHED SKILLS -->
+                <h2>
+                    Your Career Profile
+                </h2>
 
-        <section class="section">
+                <div class="profile-grid">
 
-            <h2>
-                ✅ Skills You Already Have
-            </h2>
-
-            <ul
-                id="matchedSkills"
-                class="skill-list">
-            </ul>
-
-        </section>
-
-
-        <!-- SKILL GAPS -->
-
-        <section class="section">
-
-            <h2>
-                📚 Skills You Should Learn
-            </h2>
-
-            <ul
-                id="skillGaps"
-                class="skill-list">
-            </ul>
-
-        </section>
-
-
-        <!-- REQUIRED SKILLS -->
-
-        <section class="section">
-
-            <h2>
-                🧠 Skills Needed for Your Recommended Career
-            </h2>
-
-            <ul
-                id="requiredSkills"
-                class="skill-list">
-            </ul>
-
-        </section>
-
-
-        <!-- CAREER PATH -->
-
-        <section class="section">
-
-            <h2>
-                📈 Possible Career Path
-            </h2>
-
-            <div
-                id="careerPath"
-                class="path">
-            </div>
-
-        </section>
-
-
-        <!-- ROADMAP -->
-
-        <section class="section">
-
-            <h2>
-                🗺️ Recommended Career Roadmap
-            </h2>
-
-            <div
-                id="roadmap"
-                class="roadmap">
-            </div>
-
-        </section>
-
-
-        <!-- TIMELINE -->
-
-        <section class="section">
-
-            <h2>
-                ⏳ Estimated Timeline
-            </h2>
-
-            <div
-                id="timeline"
-                class="timeline">
-            </div>
-
-        </section>
-
-
-        <!-- RESOURCES -->
-
-        <section class="section">
-
-            <h2>
-                📖 Suggested Learning Resources
-            </h2>
-
-            <ul
-                id="resources"
-                class="resource-list">
-            </ul>
-
-        </section>
-
-
-        <!-- NOTE -->
-
-        <section class="section">
-
-            <div class="note">
-
-                <strong>Important:</strong>
-
-                Career recommendations are guidance based on
-                the information provided in your profile.
-                They do not guarantee employment, admission
-                or a specific career outcome.
-
-            </div>
-
-            <a
-                href="profile.html"
-                class="button">
-
-                Update Profile
-
-            </a>
-
-        </section>
-
-
-    </div>
-
-</main>
-
-
-<footer>
-
-    © 2026 Career Guidance Portal
-
-</footer>
-
-
-<script>
-
-    const userId =
-        localStorage.getItem("userId");
-
-
-    if (!userId) {
-
-        window.location.href =
-            "login.html";
-    }
-
-
-    function logout() {
-
-        localStorage.removeItem("userId");
-
-        localStorage.removeItem("userName");
-
-        window.location.href =
-            "index.html";
-    }
-
-
-    function escapeHTML(value) {
-
-        return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-
-    function toArray(value) {
-
-        if (Array.isArray(value)) {
-            return value;
-        }
-
-        if (!value) {
-            return [];
-        }
-
-        if (typeof value === "string") {
-
-            try {
-
-                const parsed =
-                    JSON.parse(value);
-
-                if (Array.isArray(parsed)) {
-                    return parsed;
-                }
-
-            } catch {
-
-                return value
-                    .split(",")
-                    .map(item => item.trim())
-                    .filter(Boolean);
-            }
-        }
-
-        return [];
-    }
-
-
-    async function loadRecommendations() {
-
-        try {
-
-            const response =
-                await fetch(
-                    `/api/recommendations/${userId}`
-                );
-
-
-            if (!response.ok) {
-
-                throw new Error(
-                    "Server returned " +
-                    response.status
-                );
-            }
-
-
-            const data =
-                await response.json();
-
-
-            if (!data.success) {
-
-                throw new Error(
-                    data.message ||
-                    "Could not generate recommendations."
-                );
-            }
-
-
-            renderRecommendations(
-                data.profile,
-                data.recommendations
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "Recommendation error:",
-                error
-            );
-
-
-            document.getElementById(
-                "loading"
-            ).style.display = "none";
-
-
-            const errorBox =
-                document.getElementById(
-                    "errorBox"
-                );
-
-
-            errorBox.textContent =
-                error.message ||
-                "Cannot connect to the server. Make sure Node.js is running.";
-
-
-            errorBox.style.display =
-                "block";
-        }
-    }
-
-
-    function renderRecommendations(
-        profile,
-        recommendations
-    ) {
-
-        if (
-            !recommendations ||
-            recommendations.length === 0
-        ) {
-
-            throw new Error(
-                "No career recommendations are available."
-            );
-        }
-
-
-        const best =
-            recommendations[0];
-
-
-        /* --------------------------------
-           Support both naming styles
-        -------------------------------- */
-
-        const careerName =
-            best.careerName ||
-            best.career_name ||
-            "Career";
-
-
-        const score =
-            Number(best.score) || 0;
-
-
-        const explanation =
-            best.explanation ||
-            "This career matches some aspects of your profile.";
-
-
-        const confidence =
-            best.confidence ||
-            "Low";
-
-
-        const recommendationType =
-            best.recommendationType ||
-            best.recommendation_type ||
-            "Explore";
-
-
-        const roadmap =
-            toArray(
-                best.roadmap
-            );
-
-
-        const resources =
-            toArray(
-                best.resources
-            );
-
-
-        const requiredSkills =
-            toArray(
-                best.requiredSkills ||
-                best.required_skills
-            );
-
-
-        const matchedSkills =
-            toArray(
-                best.matchedSkills ||
-                best.matched_skills
-            );
-
-
-        const skillGaps =
-            toArray(
-                best.skillGaps ||
-                best.skill_gaps
-            );
-
-
-        const breakdown =
-            best.scoreBreakdown ||
-            best.score_breakdown ||
-            {};
-
-
-        const qualification =
-            best.qualificationStatus ||
-            best.qualification_status ||
-            {};
-
-
-        /* --------------------------------
-           Recommended Career
-        -------------------------------- */
-
-        document.getElementById(
-            "recommendedCareer"
-        ).textContent =
-            careerName;
-
-
-        document.getElementById(
-            "recommendedScore"
-        ).textContent =
-            `${score}% Match`;
-
-
-        document.getElementById(
-            "confidence"
-        ).textContent =
-            `${confidence} Confidence • ${recommendationType}`;
-
-
-        document.getElementById(
-            "recommendedExplanation"
-        ).textContent =
-            explanation;
-
-
-        document.getElementById(
-            "goalCareer"
-        ).textContent =
-            careerName;
-
-
-        document.getElementById(
-            "whyText"
-        ).textContent =
-            explanation;
-
-
-        /* --------------------------------
-           Score Breakdown
-        -------------------------------- */
-
-        const scoreBreakdown =
-            document.getElementById(
-                "scoreBreakdown"
-            );
-
-
-        scoreBreakdown.innerHTML = "";
-
-
-        const breakdownItems = [
-
-            ["Interest", breakdown.interest || 0],
-
-            ["Skills", breakdown.skills || 0],
-
-            ["Field", breakdown.field || 0],
-
-            ["Qualification", breakdown.qualification || 0]
-
-        ];
-
-
-        breakdownItems.forEach(
-            ([label, value]) => {
-
-                const card =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                card.className =
-                    "breakdown-card";
-
-
-                card.innerHTML = `
-
-                    <span>
-                        ${escapeHTML(label)}
-                    </span>
-
-                    <strong>
-                        ${escapeHTML(value)}
-                    </strong>
-
-                `;
-
-
-                scoreBreakdown.appendChild(
-                    card
-                );
-
-            }
-        );
-
-
-        /* --------------------------------
-           Goal Steps
-        -------------------------------- */
-
-        const goalSteps =
-            document.getElementById(
-                "goalSteps"
-            );
-
-
-        goalSteps.innerHTML = "";
-
-
-        roadmap
-            .slice(0, 4)
-            .forEach(
-                (step, index) => {
-
-                    const div =
-                        document.createElement(
-                            "p"
-                        );
-
-
-                    div.innerHTML = `
+                    <div class="profile-item">
 
                         <strong>
-                            Step ${index + 1}
+                            Name
                         </strong>
 
-                        — ${escapeHTML(step)}
+                        <span id="profileName">
+                            -
+                        </span>
 
-                    `;
-
-
-                    goalSteps.appendChild(
-                        div
-                    );
-
-                }
-            );
-
-
-        /* --------------------------------
-           Qualification Status
-        -------------------------------- */
-
-        const qualificationBox =
-            document.getElementById(
-                "qualificationStatus"
-            );
-
-
-        const meetsRequirement =
-            qualification.meetsRequirement;
-
-
-        qualificationBox.className =
-            meetsRequirement
-                ? "status-box status-success"
-                : "status-box status-warning";
-
-
-        qualificationBox.innerHTML = `
-
-            <strong>
-                ${escapeHTML(
-                    qualification.label ||
-                    "Qualification information"
-                )}
-            </strong>
-
-            <br>
-
-            Minimum required:
-            <strong>
-                ${escapeHTML(
-                    qualification.minimumRequired ||
-                    best.minimumQualification ||
-                    "Not specified"
-                )}
-            </strong>
-
-            <br>
-
-            Your qualification:
-            <strong>
-                ${escapeHTML(
-                    qualification.userQualification ||
-                    profile.qualification ||
-                    "Not specified"
-                )}
-            </strong>
-
-        `;
-
-
-        /* --------------------------------
-           Other Careers
-        -------------------------------- */
-
-        const other =
-            recommendations.slice(1, 5);
-
-
-        const otherContainer =
-            document.getElementById(
-                "otherCareers"
-            );
-
-
-        otherContainer.innerHTML = "";
-
-
-        other.forEach(
-            career => {
-
-                const card =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                card.className =
-                    "career-card";
-
-
-                const name =
-                    career.careerName ||
-                    career.career_name ||
-                    "Career";
-
-
-                const careerScore =
-                    Number(
-                        career.score
-                    ) || 0;
-
-
-                const type =
-                    career.recommendationType ||
-                    career.recommendation_type ||
-                    "Explore";
-
-
-                const careerExplanation =
-                    career.explanation ||
-                    "";
-
-
-                card.innerHTML = `
-
-                    <h3>
-                        ${escapeHTML(name)}
-                    </h3>
-
-                    <div class="career-score">
-                        ${careerScore}% Match
                     </div>
 
-                    <div class="career-type">
-                        ${escapeHTML(type)}
+
+                    <div class="profile-item">
+
+                        <strong>
+                            Qualification
+                        </strong>
+
+                        <span id="profileQualification">
+                            -
+                        </span>
+
                     </div>
 
-                    <div class="score-bar">
+
+                    <div class="profile-item">
+
+                        <strong>
+                            Field
+                        </strong>
+
+                        <span id="profileField">
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-item">
+
+                        <strong>
+                            Interest
+                        </strong>
+
+                        <span id="profileInterest">
+                            -
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="profile-item"
+                    style="margin-top:15px;"
+                >
+
+                    <strong>
+                        Skills
+                    </strong>
+
+                    <span id="profileSkills">
+                        -
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 BEST RECOMMENDATION
+            ========================= -->
+
+            <div class="recommendation-card">
+
+                <div class="recommendation-header">
+
+                    <div>
+
+                        <h2 id="careerName">
+                            -
+                        </h2>
 
                         <div
-                            class="score-fill"
-                            style="width:${Math.min(
-                                Math.max(careerScore, 0),
-                                100
-                            )}%">
+                            id="recommendationType"
+                            class="recommendation-type"
+                        >
+                            -
                         </div>
 
                     </div>
 
-                    <p
-                        style="
-                            color:#6b7280;
-                            line-height:1.5;
-                        ">
 
-                        ${escapeHTML(
-                            careerExplanation
-                        )}
+                    <div
+                        id="matchPercentage"
+                        class="match-badge"
+                    >
+                        0%
+                    </div>
 
-                    </p>
-
-                `;
+                </div>
 
 
-                otherContainer.appendChild(
-                    card
+                <p
+                    id="careerReason"
+                    class="career-description"
+                >
+                    -
+                </p>
+
+
+                <!-- CAREER INFORMATION -->
+
+                <h3 class="section-title">
+                    Career Information
+                </h3>
+
+                <div class="profile-grid">
+
+                    <div class="profile-item">
+
+                        <strong>
+                            Minimum Qualification
+                        </strong>
+
+                        <span id="minimumQualification">
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-item">
+
+                        <strong>
+                            Expected Timeline
+                        </strong>
+
+                        <span id="careerTimeline">
+                            -
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SCORE BREAKDOWN -->
+
+                <h3 class="section-title">
+                    Match Score Breakdown
+                </h3>
+
+                <div class="score-grid">
+
+                    <div class="score-box">
+
+                        <strong>
+                            Interest
+                        </strong>
+
+                        <span id="interestScore">
+                            0
+                        </span>
+
+                        / 40
+
+                    </div>
+
+
+                    <div class="score-box">
+
+                        <strong>
+                            Skills
+                        </strong>
+
+                        <span id="skillScore">
+                            0
+                        </span>
+
+                        / 30
+
+                    </div>
+
+
+                    <div class="score-box">
+
+                        <strong>
+                            Field
+                        </strong>
+
+                        <span id="fieldScore">
+                            0
+                        </span>
+
+                        / 20
+
+                    </div>
+
+
+                    <div class="score-box">
+
+                        <strong>
+                            Qualification
+                        </strong>
+
+                        <span id="qualificationScore">
+                            0
+                        </span>
+
+                        / 10
+
+                    </div>
+
+                </div>
+
+
+                <!-- SKILLS -->
+
+                <h3 class="section-title">
+                    Skills Analysis
+                </h3>
+
+                <div class="skills-section">
+
+
+                    <div class="skill-box">
+
+                        <h4>
+                            Required Skills
+                        </h4>
+
+                        <ul
+                            id="requiredSkills"
+                            class="skill-list"
+                        >
+                        </ul>
+
+                    </div>
+
+
+                    <div class="skill-box">
+
+                        <h4>
+                            Skills You Already Have
+                        </h4>
+
+                        <ul
+                            id="matchedSkills"
+                            class="skill-list"
+                        >
+                        </ul>
+
+                    </div>
+
+
+                    <div class="skill-box">
+
+                        <h4>
+                            Skills You Need to Improve
+                        </h4>
+
+                        <ul
+                            id="missingSkills"
+                            class="skill-list"
+                        >
+                        </ul>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SKILL IMPROVEMENT -->
+
+                <h3 class="section-title">
+                    Skill Improvement Areas
+                </h3>
+
+                <table
+                    class="improvement-table"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Skill
+                            </th>
+
+                            <th>
+                                Current Level
+                            </th>
+
+                            <th>
+                                Target Level
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="skillImprovementTable">
+
+                    </tbody>
+
+                </table>
+
+
+                <!-- ROADMAP -->
+
+                <h3 class="section-title">
+                    Career Roadmap
+                </h3>
+
+                <div
+                    id="roadmap"
+                    class="roadmap"
+                >
+                </div>
+
+
+                <!-- RESOURCES -->
+
+                <h3 class="section-title">
+                    Learning Resources
+                </h3>
+
+                <ul
+                    id="resources"
+                    class="resources-list"
+                >
+                </ul>
+
+            </div>
+
+
+            <!-- =========================
+                 OTHER CAREERS
+            ========================= -->
+
+            <div class="other-careers-section">
+
+                <h2>
+                    Other Career Options
+                </h2>
+
+                <p>
+                    Explore other careers available in the CareerGuide database.
+                    These options are displayed in alphabetical order.
+                </p>
+
+                <div
+                    id="careerList"
+                    class="career-list"
+                >
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         FOOTER
+    ========================= -->
+
+    <footer>
+
+        <p>
+            © 2026 CareerGuide. All rights reserved.
+        </p>
+
+        <p>
+            Find the right career based on your skills and interests.
+        </p>
+
+    </footer>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================= -->
+
+    <script>
+
+        // =====================================================
+        // GLOBAL DATA
+        // =====================================================
+
+        let recommendationData = null;
+
+
+        // =====================================================
+        // GET USER
+        // =====================================================
+
+        function getLoggedInUser() {
+
+            let user = null;
+
+            try {
+
+                user =
+                    JSON.parse(
+                        localStorage.getItem("user")
+                    );
+
+            } catch (error) {
+
+                console.log(
+                    "User data could not be read."
                 );
 
             }
-        );
 
 
-        /* --------------------------------
-           Profile
-        -------------------------------- */
+            /*
+             * Older versions of the project stored
+             * the user ID separately.
+             */
 
-        const profileGrid =
-            document.getElementById(
-                "profileGrid"
-            );
+            if (!user) {
 
+                const userId =
+                    localStorage.getItem("userId");
 
-        profileGrid.innerHTML = `
+                if (userId) {
 
-            <div class="profile-item">
+                    user = {
+                        id: userId
+                    };
 
-                <span>
-                    Full Name
-                </span>
+                }
 
-                <strong>
-                    ${escapeHTML(
-                        profile.fullName ||
-                        profile.full_name ||
-                        "Not provided"
-                    )}
-                </strong>
-
-            </div>
+            }
 
 
-            <div class="profile-item">
-
-                <span>
-                    Qualification
-                </span>
-
-                <strong>
-                    ${escapeHTML(
-                        profile.qualification ||
-                        "Not provided"
-                    )}
-                </strong>
-
-            </div>
+            return user;
+        }
 
 
-            <div class="profile-item">
+        // =====================================================
+        // LOAD RECOMMENDATIONS
+        // =====================================================
 
-                <span>
-                    Field / Stream
-                </span>
+        async function loadRecommendations() {
 
-                <strong>
-                    ${escapeHTML(
-                        profile.field ||
-                        "Not provided"
-                    )}
-                </strong>
+            const loading =
+                document.getElementById("loading");
 
-            </div>
+            const errorBox =
+                document.getElementById("errorBox");
 
+            const errorMessage =
+                document.getElementById("errorMessage");
 
-            <div class="profile-item">
-
-                <span>
-                    Career Interest
-                </span>
-
-                <strong>
-                    ${escapeHTML(
-                        profile.interest ||
-                        "Not provided"
-                    )}
-                </strong>
-
-            </div>
-
-        `;
+            const careerContent =
+                document.getElementById("careerContent");
 
 
-        /* --------------------------------
-           Current Skills
-        -------------------------------- */
+            try {
 
-        const currentSkills =
-            document.getElementById(
-                "currentSkills"
-            );
+                const user =
+                    getLoggedInUser();
 
 
-        currentSkills.innerHTML = "";
+                if (!user || !user.id) {
+
+                    throw new Error(
+                        "Your login session could not be found. Please login again."
+                    );
+
+                }
 
 
-        let skills =
-            profile.skills || [];
-
-
-        skills =
-            toArray(skills);
-
-
-        if (
-            skills.length === 0
-        ) {
-
-            const li =
-                document.createElement(
-                    "li"
+                console.log(
+                    "Loading recommendations for user:",
+                    user.id
                 );
 
 
-            li.className =
-                "empty";
+                const response =
+                    await fetch(
+                        "/api/recommendations/" +
+                        encodeURIComponent(user.id),
+                        {
+                            method: "GET",
+                            credentials: "same-origin"
+                        }
+                    );
 
 
-            li.textContent =
-                "No skills added yet";
+                const data =
+                    await response.json();
 
 
-            currentSkills.appendChild(
-                li
+                console.log(
+                    "Recommendation API response:",
+                    data
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.message ||
+                        "The server could not load recommendations."
+                    );
+
+                }
+
+
+                if (!data.success) {
+
+                    throw new Error(
+                        data.message ||
+                        "Invalid recommendation response."
+                    );
+
+                }
+
+
+                recommendationData =
+                    data;
+
+
+                displayProfile(
+                    data.profile
+                );
+
+
+                displayRecommendation(
+                    data.recommendation
+                );
+
+
+                displayOtherCareers(
+                    data.recommendations,
+                    data.recommendation
+                );
+
+
+                loading.style.display =
+                    "none";
+
+                careerContent.style.display =
+                    "block";
+
+                errorBox.style.display =
+                    "none";
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Recommendation error:",
+                    error
+                );
+
+
+                loading.style.display =
+                    "none";
+
+                careerContent.style.display =
+                    "none";
+
+                errorBox.style.display =
+                    "block";
+
+                errorMessage.textContent =
+                    error.message ||
+                    "Something went wrong.";
+
+            }
+
+        }
+
+
+        // =====================================================
+        // DISPLAY PROFILE
+        // =====================================================
+
+        function displayProfile(profile) {
+
+            document.getElementById(
+                "profileName"
+            ).textContent =
+                profile.full_name ||
+                "-";
+
+
+            document.getElementById(
+                "profileQualification"
+            ).textContent =
+                profile.qualification ||
+                "-";
+
+
+            document.getElementById(
+                "profileField"
+            ).textContent =
+                profile.field ||
+                "-";
+
+
+            document.getElementById(
+                "profileInterest"
+            ).textContent =
+                profile.interest ||
+                "-";
+
+
+            const skillsElement =
+                document.getElementById(
+                    "profileSkills"
+                );
+
+
+            const skills =
+                Array.isArray(profile.skills)
+                    ? profile.skills
+                    : [];
+
+
+            if (skills.length === 0) {
+
+                skillsElement.textContent =
+                    "No skills selected.";
+
+                return;
+            }
+
+
+            skillsElement.textContent =
+                skills
+                    .map(skill => {
+
+                        if (
+                            typeof skill ===
+                            "string"
+                        ) {
+
+                            return skill;
+
+                        }
+
+
+                        if (
+                            skill &&
+                            typeof skill ===
+                            "object"
+                        ) {
+
+                            const name =
+                                skill.name ||
+                                "";
+
+                            const level =
+                                skill.level ||
+                                "";
+
+                            if (level) {
+
+                                return (
+                                    name +
+                                    " (" +
+                                    level +
+                                    ")"
+                                );
+
+                            }
+
+                            return name;
+                        }
+
+
+                        return "";
+
+                    })
+                    .filter(Boolean)
+                    .join(", ");
+
+        }
+
+
+        // =====================================================
+        // DISPLAY BEST RECOMMENDATION
+        // =====================================================
+
+        function displayRecommendation(
+            recommendation
+        ) {
+
+            if (!recommendation) {
+
+                throw new Error(
+                    "No career recommendation was returned."
+                );
+
+            }
+
+
+            document.getElementById(
+                "careerName"
+            ).textContent =
+                recommendation.careerName ||
+                "-";
+
+
+            document.getElementById(
+                "matchPercentage"
+            ).textContent =
+                (
+                    recommendation.matchPercentage ||
+                    0
+                ) + "%";
+
+
+            document.getElementById(
+                "recommendationType"
+            ).textContent =
+                recommendation.recommendationType ||
+                "-";
+
+
+            document.getElementById(
+                "careerReason"
+            ).textContent =
+                recommendation.reason ||
+                "This career has been selected based on your profile.";
+
+
+            document.getElementById(
+                "minimumQualification"
+            ).textContent =
+                recommendation.minimumQualification ||
+                "-";
+
+
+            document.getElementById(
+                "careerTimeline"
+            ).textContent =
+                recommendation.timeline ||
+                "-";
+
+
+            // SCORE BREAKDOWN
+
+            const breakdown =
+                recommendation.scoreBreakdown ||
+                {};
+
+
+            document.getElementById(
+                "interestScore"
+            ).textContent =
+                breakdown.interestScore ||
+                0;
+
+
+            document.getElementById(
+                "skillScore"
+            ).textContent =
+                breakdown.skillScore ||
+                0;
+
+
+            document.getElementById(
+                "fieldScore"
+            ).textContent =
+                breakdown.fieldScore ||
+                0;
+
+
+            document.getElementById(
+                "qualificationScore"
+            ).textContent =
+                breakdown.qualificationScore ||
+                0;
+
+
+            // SKILLS
+
+            displayList(
+                "requiredSkills",
+                recommendation.requiredSkills,
+                "No specific skills listed."
             );
 
-        } else {
 
-            skills.forEach(
-                skill => {
+            displayList(
+                "matchedSkills",
+                recommendation.matchedSkills,
+                "None yet."
+            );
 
-                    let name = "";
-                    let level = "";
+
+            displayList(
+                "missingSkills",
+                recommendation.missingSkills,
+                "You already have all required skills."
+            );
+
+
+            // SKILL IMPROVEMENT
+
+            displaySkillImprovements(
+                recommendation.skillGaps
+            );
+
+
+            // ROADMAP
+
+            displayRoadmap(
+                recommendation.roadmap
+            );
+
+
+            // RESOURCES
+
+            displayResources(
+                recommendation.resources
+            );
+
+        }
+
+
+        // =====================================================
+        // DISPLAY LIST
+        // =====================================================
+
+        function displayList(
+            elementId,
+            items,
+            emptyMessage
+        ) {
+
+            const element =
+                document.getElementById(
+                    elementId
+                );
+
+
+            element.innerHTML = "";
+
+
+            if (
+                !Array.isArray(items) ||
+                items.length === 0
+            ) {
+
+                const li =
+                    document.createElement("li");
+
+                li.className =
+                    "empty-message";
+
+                li.textContent =
+                    emptyMessage;
+
+                element.appendChild(li);
+
+                return;
+            }
+
+
+            items.forEach(item => {
+
+                const li =
+                    document.createElement("li");
+
+
+                if (
+                    typeof item ===
+                    "string"
+                ) {
+
+                    li.textContent =
+                        item;
+
+                } else if (
+                    item &&
+                    typeof item ===
+                    "object"
+                ) {
+
+                    li.textContent =
+                        item.name ||
+                        item.title ||
+                        item.text ||
+                        JSON.stringify(item);
+
+                } else {
+
+                    li.textContent =
+                        String(item);
+
+                }
+
+
+                element.appendChild(li);
+
+            });
+
+        }
+
+
+        // =====================================================
+        // SKILL IMPROVEMENT TABLE
+        // =====================================================
+
+        function displaySkillImprovements(
+            skillGaps
+        ) {
+
+            const table =
+                document.getElementById(
+                    "skillImprovementTable"
+                );
+
+
+            table.innerHTML = "";
+
+
+            if (
+                !Array.isArray(skillGaps) ||
+                skillGaps.length === 0
+            ) {
+
+                const row =
+                    document.createElement("tr");
+
+
+                const cell =
+                    document.createElement("td");
+
+                cell.colSpan = 3;
+
+                cell.className =
+                    "empty-message";
+
+                cell.textContent =
+                    "No major skill gaps identified.";
+
+                row.appendChild(cell);
+
+                table.appendChild(row);
+
+                return;
+            }
+
+
+            skillGaps.forEach(skill => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                const skillCell =
+                    document.createElement("td");
+
+
+                const currentCell =
+                    document.createElement("td");
+
+
+                const targetCell =
+                    document.createElement("td");
+
+
+                skillCell.textContent =
+                    skill.name ||
+                    "-";
+
+
+                currentCell.textContent =
+                    skill.currentLevel ||
+                    "Not Started";
+
+
+                targetCell.textContent =
+                    skill.targetLevel ||
+                    "Intermediate";
+
+
+                row.appendChild(
+                    skillCell
+                );
+
+                row.appendChild(
+                    currentCell
+                );
+
+                row.appendChild(
+                    targetCell
+                );
+
+
+                table.appendChild(row);
+
+            });
+
+        }
+
+
+        // =====================================================
+        // ROADMAP
+        // =====================================================
+
+        function displayRoadmap(
+            roadmap
+        ) {
+
+            const roadmapElement =
+                document.getElementById(
+                    "roadmap"
+                );
+
+
+            roadmapElement.innerHTML = "";
+
+
+            if (
+                !Array.isArray(roadmap) ||
+                roadmap.length === 0
+            ) {
+
+                const message =
+                    document.createElement("p");
+
+                message.className =
+                    "empty-message";
+
+                message.textContent =
+                    "Roadmap information is not available.";
+
+                roadmapElement.appendChild(
+                    message
+                );
+
+                return;
+            }
+
+
+            roadmap.forEach(
+                (step, index) => {
+
+                    const item =
+                        document.createElement(
+                            "div"
+                        );
+
+                    item.className =
+                        "roadmap-item";
+
+
+                    const number =
+                        document.createElement(
+                            "div"
+                        );
+
+                    number.className =
+                        "roadmap-number";
+
+                    number.textContent =
+                        index + 1;
+
+
+                    const text =
+                        document.createElement(
+                            "div"
+                        );
+
+                    text.className =
+                        "roadmap-text";
 
 
                     if (
-                        typeof skill ===
+                        typeof step ===
                         "string"
                     ) {
 
-                        name = skill;
+                        text.textContent =
+                            step;
+
+                    } else if (
+                        step &&
+                        typeof step ===
+                        "object"
+                    ) {
+
+                        text.textContent =
+                            step.title ||
+                            step.name ||
+                            step.description ||
+                            step.text ||
+                            JSON.stringify(step);
 
                     } else {
 
-                        name =
-                            skill.name ||
-                            skill.skill ||
-                            skill.title ||
-                            "";
+                        text.textContent =
+                            String(step);
 
-
-                        level =
-                            skill.level ||
-                            skill.value ||
-                            "";
                     }
 
 
-                    if (!name) {
-                        return;
-                    }
+                    item.appendChild(
+                        number
+                    );
+
+                    item.appendChild(
+                        text
+                    );
 
 
-                    const li =
-                        document.createElement(
-                            "li"
-                        );
-
-
-                    li.textContent =
-                        level
-                            ? `${name} — ${level}`
-                            : name;
-
-
-                    currentSkills.appendChild(
-                        li
+                    roadmapElement.appendChild(
+                        item
                     );
 
                 }
             );
+
         }
 
 
-        /* --------------------------------
-           Matched Skills
-        -------------------------------- */
+        // =====================================================
+        // RESOURCES
+        // =====================================================
 
-        const matchedSkillsContainer =
-            document.getElementById(
-                "matchedSkills"
-            );
-
-
-        matchedSkillsContainer.innerHTML =
-            "";
-
-
-        if (
-            matchedSkills.length === 0
+        function displayResources(
+            resources
         ) {
 
-            const li =
-                document.createElement(
-                    "li"
+            const element =
+                document.getElementById(
+                    "resources"
                 );
 
 
-            li.className =
-                "empty";
+            element.innerHTML = "";
 
 
-            li.textContent =
-                "No matching skills yet";
-
-
-            matchedSkillsContainer.appendChild(
-                li
-            );
-
-        } else {
-
-            matchedSkills.forEach(
-                skill => {
-
-                    const li =
-                        document.createElement(
-                            "li"
-                        );
-
-
-                    li.textContent =
-                        skill;
-
-
-                    matchedSkillsContainer.appendChild(
-                        li
-                    );
-
-                }
-            );
-        }
-
-
-        /* --------------------------------
-           Skill Gaps
-        -------------------------------- */
-
-        const skillGapsContainer =
-            document.getElementById(
-                "skillGaps"
-            );
-
-
-        skillGapsContainer.innerHTML =
-            "";
-
-
-        if (
-            skillGaps.length === 0
-        ) {
-
-            const li =
-                document.createElement(
-                    "li"
-                );
-
-
-            li.className =
-                "empty";
-
-
-            li.textContent =
-                "No major skill gaps identified";
-
-
-            skillGapsContainer.appendChild(
-                li
-            );
-
-        } else {
-
-            skillGaps.forEach(
-                skill => {
-
-                    const li =
-                        document.createElement(
-                            "li"
-                        );
-
-
-                    li.className =
-                        "gap";
-
-
-                    li.textContent =
-                        skill;
-
-
-                    skillGapsContainer.appendChild(
-                        li
-                    );
-
-                }
-            );
-        }
-
-
-        /* --------------------------------
-           Required Skills
-        -------------------------------- */
-
-        const requiredSkillsContainer =
-            document.getElementById(
-                "requiredSkills"
-            );
-
-
-        requiredSkillsContainer.innerHTML =
-            "";
-
-
-        if (
-            requiredSkills.length === 0
-        ) {
-
-            const li =
-                document.createElement(
-                    "li"
-                );
-
-
-            li.className =
-                "empty";
-
-
-            li.textContent =
-                "No required skills listed";
-
-
-            requiredSkillsContainer.appendChild(
-                li
-            );
-
-        } else {
-
-            requiredSkills.forEach(
-                skill => {
-
-                    const li =
-                        document.createElement(
-                            "li"
-                        );
-
-
-                    li.textContent =
-                        skill;
-
-
-                    requiredSkillsContainer.appendChild(
-                        li
-                    );
-
-                }
-            );
-        }
-
-
-        /* --------------------------------
-           Career Path
-        -------------------------------- */
-
-        const careerPath =
-            document.getElementById(
-                "careerPath"
-            );
-
-
-        if (roadmap.length > 0) {
-
-            careerPath.textContent =
-                roadmap.join(" → ");
-
-        } else {
-
-            careerPath.textContent =
-                "Career roadmap will be available soon.";
-
-        }
-
-
-        /* --------------------------------
-           Roadmap
-        -------------------------------- */
-
-        const roadmapContainer =
-            document.getElementById(
-                "roadmap"
-            );
-
-
-        roadmapContainer.innerHTML =
-            "";
-
-
-        roadmap.forEach(
-            (step, index) => {
-
-                const row =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                row.className =
-                    "roadmap-item";
-
-
-                row.innerHTML = `
-
-                    <div class="step-number">
-                        ${index + 1}
-                    </div>
-
-                    <div class="step-text">
-                        ${escapeHTML(step)}
-                    </div>
-
-                `;
-
-
-                roadmapContainer.appendChild(
-                    row
-                );
-
-            }
-        );
-
-
-        /* --------------------------------
-           Timeline
-        -------------------------------- */
-
-        document.getElementById(
-            "timeline"
-        ).textContent =
-            best.timeline ||
-            "Not specified";
-
-
-        /* --------------------------------
-           Resources
-        -------------------------------- */
-
-        const resourcesContainer =
-            document.getElementById(
-                "resources"
-            );
-
-
-        resourcesContainer.innerHTML =
-            "";
-
-
-        resources.forEach(
-            resource => {
+            if (
+                !Array.isArray(resources) ||
+                resources.length === 0
+            ) {
 
                 const li =
-                    document.createElement(
-                        "li"
+                    document.createElement("li");
+
+                li.className =
+                    "empty-message";
+
+                li.textContent =
+                    "No learning resources listed.";
+
+                element.appendChild(li);
+
+                return;
+            }
+
+
+            resources.forEach(resource => {
+
+                const li =
+                    document.createElement("li");
+
+
+                if (
+                    typeof resource ===
+                    "string"
+                ) {
+
+                    li.textContent =
+                        resource;
+
+                } else if (
+                    resource &&
+                    typeof resource ===
+                    "object"
+                ) {
+
+                    /*
+                     * If resources contain a URL,
+                     * create a clickable link.
+                     */
+
+                    if (resource.url) {
+
+                        const link =
+                            document.createElement(
+                                "a"
+                            );
+
+                        link.href =
+                            resource.url;
+
+                        link.target =
+                            "_blank";
+
+                        link.rel =
+                            "noopener noreferrer";
+
+                        link.textContent =
+                            resource.name ||
+                            resource.title ||
+                            resource.url;
+
+                        li.appendChild(
+                            link
+                        );
+
+                    } else {
+
+                        li.textContent =
+                            resource.name ||
+                            resource.title ||
+                            resource.text ||
+                            JSON.stringify(resource);
+
+                    }
+
+                } else {
+
+                    li.textContent =
+                        String(resource);
+
+                }
+
+
+                element.appendChild(li);
+
+            });
+
+        }
+
+
+        // =====================================================
+        // OTHER CAREERS — ALPHABETICAL ORDER
+        // =====================================================
+
+        function displayOtherCareers(
+            recommendations,
+            bestRecommendation
+        ) {
+
+            const careerList =
+                document.getElementById(
+                    "careerList"
+                );
+
+
+            careerList.innerHTML = "";
+
+
+            if (
+                !Array.isArray(recommendations) ||
+                recommendations.length === 0
+            ) {
+
+                careerList.innerHTML =
+                    "<p class='empty-message'>No other career options available.</p>";
+
+                return;
+            }
+
+
+            /*
+             * IMPORTANT:
+             *
+             * We create a copy so that we do not
+             * modify the original recommendation data.
+             */
+
+            const careers =
+                [...recommendations];
+
+
+            /*
+             * Sort career names A-Z.
+             */
+
+            careers.sort(
+                (a, b) => {
+
+                    const nameA =
+                        String(
+                            a.careerName ||
+                            ""
+                        ).toLowerCase();
+
+                    const nameB =
+                        String(
+                            b.careerName ||
+                            ""
+                        ).toLowerCase();
+
+
+                    return nameA.localeCompare(
+                        nameB
+                    );
+
+                }
+            );
+
+
+            careers.forEach(
+                career => {
+
+                    /*
+                     * Don't show the best recommendation
+                     * again in "Other Career Options".
+                     */
+
+                    if (
+                        bestRecommendation &&
+                        career.careerId ===
+                        bestRecommendation.careerId
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
+
+                    card.className =
+                        "career-option";
+
+
+                    const name =
+                        document.createElement(
+                            "span"
+                        );
+
+                    name.className =
+                        "career-name";
+
+                    name.textContent =
+                        career.careerName ||
+                        "Unknown Career";
+
+
+                    const score =
+                        document.createElement(
+                            "span"
+                        );
+
+                    score.className =
+                        "career-score";
+
+                    score.textContent =
+                        (
+                            career.matchPercentage ||
+                            0
+                        ) + "% Match";
+
+
+                    card.appendChild(
+                        name
+                    );
+
+                    card.appendChild(
+                        score
                     );
 
 
-                li.textContent =
-                    resource;
+                    careerList.appendChild(
+                        card
+                    );
+
+                }
+            );
 
 
-                resourcesContainer.appendChild(
-                    li
-                );
+            /*
+             * If there was only one career,
+             * the list may be empty because the
+             * best recommendation was removed.
+             */
+
+            if (
+                careerList.children.length === 0
+            ) {
+
+                careerList.innerHTML =
+                    "<p class='empty-message'>No other career options available.</p>";
+
+            }
+
+        }
+
+
+        // =====================================================
+        // GO TO PROFILE
+        // =====================================================
+
+        function goToProfile() {
+
+            window.location.href =
+                "profile.html";
+
+        }
+
+
+        // =====================================================
+        // LOGOUT
+        // =====================================================
+
+        function logout() {
+
+            /*
+             * Clear normal user login information.
+             */
+
+            localStorage.removeItem(
+                "user"
+            );
+
+            localStorage.removeItem(
+                "userId"
+            );
+
+            localStorage.removeItem(
+                "qualification"
+            );
+
+            localStorage.removeItem(
+                "field"
+            );
+
+            localStorage.removeItem(
+                "interest"
+            );
+
+            localStorage.removeItem(
+                "skills"
+            );
+
+
+            window.location.href =
+                "login.html";
+
+        }
+
+
+        // =====================================================
+        // START
+        // =====================================================
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => {
+
+                loadRecommendations();
 
             }
         );
 
-
-        /* --------------------------------
-           Display
-        -------------------------------- */
-
-        document.getElementById(
-            "loading"
-        ).style.display =
-            "none";
-
-
-        document.getElementById(
-            "content"
-        ).style.display =
-            "block";
-    }
-
-
-    loadRecommendations();
-
-</script>
+    </script>
 
 </body>
-
 </html>
-```
